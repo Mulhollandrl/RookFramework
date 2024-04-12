@@ -14,4 +14,4 @@ class Nest:
         return self.cards
     
     def set_cards(self, cards) -> None:
-        self.cards = cards
+        self.cards = cards        

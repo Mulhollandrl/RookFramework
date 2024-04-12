@@ -22,7 +22,7 @@ def random_play(player, trump_color, current_color) -> Card:
     return False
 
 def random_trump_color() -> int:
-    return random.choice()
+    return random.randint(0, 3)
 
 def random_bid(min_bid, max_bid) -> int:
     return random.randint(min_bid, max_bid)
