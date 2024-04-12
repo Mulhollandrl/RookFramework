@@ -15,7 +15,7 @@ class Player:
 
         self.playable_cards = playable_cards
         self.won_cards = won_cards
-        self.BID = bid
+        self.bid = bid
 
     def add_won_cards(self, newly_won_cards) -> None:
         self.won_cards += newly_won_cards
@@ -23,8 +23,17 @@ class Player:
     def get_playable_cards(self) -> list[Card]:
         return self.playable_cards
     
+    def set_playable_cards(self, new_playable_cards) -> None:
+        self.playable_cards = new_playable_cards
+    
     def get_won_cards(self) -> list[Card]:
         return self.won_cards
     
+    def set_won_cards(self, new_won_cards) -> None:
+        self.won_cards = new_won_cards
+    
     def get_bid(self) -> int:
-        return self.BID
+        return self.bid
+    
+    def set_bid(self, new_bid) -> None:
+        self.bid = new_bid
