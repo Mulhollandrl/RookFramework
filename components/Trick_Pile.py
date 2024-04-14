@@ -38,3 +38,6 @@ class Trick_Pile:
             return max(suit_cards, key=lambda card: card.get_number())
         else:
             return max(self.played_cards, key=lambda card: card.get_number())
+        
+    def get_winning_player_id(self, winning_card) -> int:
+        return self.played_player_ids[self.played_cards.index(winning_card)]

@@ -13,7 +13,7 @@ class Card:
         self.COLOR = color
         self.ROOK = rook
 
-        self.POINTS = CARD_POINTS[number] if not self.rook else CARD_POINTS["rook"]
+        self.POINTS = CARD_POINTS[number] if not self.ROOK else CARD_POINTS["rook"]
 
     def get_number(self) -> int:
         return self.NUMBER

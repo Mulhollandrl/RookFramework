@@ -11,9 +11,15 @@ def random_play(player, trump_color, current_color) -> Card:
     cards = player.get_playable_cards()
 
     if cards:
-        priority_cards = [card for card in cards if card.color == trump_color or card.color == current_color]
+        first_priority_cards = [card for card in cards if card.COLOR == current_color]
+        second_priority_cards = [card for card in cards if card.COLOR == trump_color]
 
-        card_to_play = random.choice(cards) if not priority_cards else random.choice(priority_cards)
+        if first_priority_cards:
+            card_to_play = random.choice(first_priority_cards)
+        elif second_priority_cards:
+            card_to_play = random.choice(second_priority_cards)
+        else:
+            card_to_play = random.choice(cards)
 
         player.set_playable_cards([card for card in cards if not card == card_to_play])
 
