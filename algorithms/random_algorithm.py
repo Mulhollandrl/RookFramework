@@ -12,7 +12,7 @@ def random_play(player, trump_color, current_color) -> Card:
 
     if cards:
         first_priority_cards = [card for card in cards if card.COLOR == current_color]
-        second_priority_cards = [card for card in cards if card.COLOR == trump_color]
+        second_priority_cards = [card for card in cards if card.COLOR == trump_color or card.ROOK]
 
         if first_priority_cards:
             card_to_play = random.choice(first_priority_cards)

@@ -48,8 +48,10 @@ class Game:
         
         while cards:
             card = cards.pop()
+
+            player = self.players[current_player_id]
             
-            self.players[current_player_id].playable_cards.append(card)
+            player.add_playable_cards([card])
             current_player_id += 1
             
             if current_player_id >= len(self.players):
@@ -70,13 +72,13 @@ class Game:
             self.current_color = move.COLOR
             
             if verbose:
-                print(f"The Trick Color Is: {next(key for key, value in COLORS.items() if value == self.current_color)}")
+                print(f"The Trick Color Is: {next(key for key, value in COLORS.items() if value == self.current_color) if not move.ROOK else 'Rook'}")
             
         self.trick_pile.play_card(move, player_id)
         
         if verbose:
             print(f"Player {player_id} has just played \
-                  {next(key for key, value in COLORS.items() if value == move.COLOR)} {move.NUMBER}")
+                  {next(key for key, value in COLORS.items() if value == move.COLOR) if not move.ROOK else 'Rook'} {move.NUMBER}")
         
         if self.trick_pile.check_trick_completion(self.player_ids):
             winning_card = self.trick_pile.get_best_card(self.current_color)
@@ -97,8 +99,11 @@ class Game:
                 self.get_winner(verbose)
             
             if verbose:
-                print(f"Player {winning_player_id} has just won the trick with \
-                      {next(key for key, value in COLORS.items() if value == winning_card.COLOR)} {winning_card.NUMBER}")
+                try:
+                    print(f"Player {winning_player_id} has just won the trick with \
+                        {next(key for key, value in COLORS.items() if value == winning_card.COLOR) if not move.ROOK else 'Rook'} {winning_card.NUMBER if not move.ROOK else 'Rook'}")
+                except:
+                    print(move.COLOR, move.NUMBER, move.ROOK)
 
     def next_bid(self, player_id, alternate_bid=0, verbose=False) -> bool:
         if player_id in self.random_player_ids:
@@ -112,7 +117,7 @@ class Game:
                 return False
             
         if verbose:
-            print(f"Player {player_id} has just bid {bid if bid > self.min_bid else "Pass"}")
+            print(f"Player {player_id} has just bid {bid if bid > self.min_bid else 'Pass'}")
             
         if bid > self.min_bid:
             self.min_bid = bid

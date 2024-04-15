@@ -10,15 +10,18 @@ from components.Card import Card
 '''
 
 class Player:
-    def __init__(self, id, playable_cards=[], won_cards=[], bid=0) -> None:
+    def __init__(self, id, bid=0) -> None:
         self.ID = id
 
-        self.playable_cards = playable_cards
-        self.won_cards = won_cards
+        self.playable_cards = []
+        self.won_cards = []
         self.bid = bid
 
     def add_won_cards(self, newly_won_cards) -> None:
         self.won_cards += newly_won_cards
+
+    def add_playable_cards(self, newly_playable_cards) -> None:
+        self.playable_cards += newly_playable_cards
 
     def get_playable_cards(self) -> list[Card]:
         return self.playable_cards

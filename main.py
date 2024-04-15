@@ -23,7 +23,7 @@ if __name__ == "__main__":
     verbose = input("Would you like the game to tell you what is happening? (Y for yes; N for no) ")
     
     while game.game_going:
-        input(f"\nPress any key to do the next {'turn' if turn_based == "Y" else 'trick/bid'}... \n")
+        input(f"\nPress any key to do the next {'turn' if turn_based == 'Y' else 'trick/bid'}... \n")
         
         if turn_based == "Y":
             #TODO: Finish implementing Turn Based
