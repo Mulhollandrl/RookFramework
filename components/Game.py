@@ -99,7 +99,10 @@ class Game:
             self.players[highest_bidder_id].set_bid(valid_bids[0])
             self.bidding_stage = False
 
-            self.trump_color = random_trump_color()
+            if player_id in self.random_player_ids:
+                self.trump_color = random_trump_color()
+            elif player_id in self.human_player_ids:
+                self.trump_color = request_trump_color()
             
             if verbose:
                 print(f"Player {highest_bidder_id} has bid the highest at {self.bids[highest_bidder_id]}")
