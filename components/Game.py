@@ -17,6 +17,10 @@ class Game:
         self.human_player_ids = human_player_ids
         self.min_bid = min_bid
         self.max_bid = max_bid
+
+        self.current_min_bid = min_bid
+        self.round_min_bid = min_bid
+        self.made_bid_player_ids = []
         
         self.player_ids = [player.ID for player in players]
 
@@ -39,6 +43,7 @@ class Game:
         random.shuffle(cards)
         
         self.divide_cards(cards)
+
             
     def divide_cards(self, cards) -> None:
         self.nest.set_cards(cards[:6])
@@ -56,6 +61,62 @@ class Game:
             
             if current_player_id >= len(self.players):
                 current_player_id = 0
+
+
+    def next_bid(self, player_id, alternate_bid=0, verbose=False) -> bool:
+        if player_id in self.random_player_ids:
+            bid = random_bid(self.min_bid, self.max_bid)
+        elif player_id in self.human_player_ids:
+            bid = request_bid(self.min_bid, self.max_bid)
+        else:
+            if not alternate_bid == 0:
+                bid = alternate_bid
+            else:
+                return False
+            
+        if verbose:
+            print(f"Player {player_id} has just bid {bid if bid > self.min_bid else 'Pass'}")
+            
+        if bid > self.current_min_bid:
+            self.current_min_bid = bid
+            
+            if verbose:
+                print(f"The new minimum bid has been set to {self.current_min_bid}")
+            
+        if len(self.bids) == len(self.player_ids):
+            self.bids[player_id] = bid
+        else:
+            self.bids.append(bid)
+        
+        valid_bids = []
+        
+        for made_bids in self.bids:
+            if made_bids >= self.round_min_bid:
+                valid_bids.append(made_bids)
+            
+        if len(valid_bids) == 1 and len(self.bids) == len(self.player_ids):
+            highest_bidder_id = self.bids.index(valid_bids[0])
+            self.players[highest_bidder_id].set_bid(valid_bids[0])
+            self.bidding_stage = False
+
+            self.trump_color = random_trump_color()
+            
+            if verbose:
+                print(f"Player {highest_bidder_id} has bid the highest at {self.bids[highest_bidder_id]}")
+                print(f"The trump color has been set to {next(key for key, value in COLORS.items() if value == self.trump_color)}")
+            
+        elif not valid_bids:
+            self.bidding_stage = False
+            
+            if verbose:
+                print(f"Nobody bid, and bidding is over")
+
+        self.made_bid_player_ids.append(player_id)
+
+        if len(self.made_bid_player_ids) == len(self.player_ids):
+            self.made_bid_player_ids = []
+            self.round_min_bid = self.current_min_bid
+
                 
     def next_player_move(self, player_id, alternate_move=0, verbose=False) -> bool:
         if player_id in self.random_player_ids:
@@ -105,52 +166,7 @@ class Game:
                 except:
                     print(move.COLOR, move.NUMBER, move.ROOK)
 
-    def next_bid(self, player_id, alternate_bid=0, verbose=False) -> bool:
-        if player_id in self.random_player_ids:
-            bid = random_bid(self.min_bid, self.max_bid)
-        elif player_id in self.human_player_ids:
-            bid = request_bid(self.min_bid, self.max_bid)
-        else:
-            if not alternate_bid == 0:
-                bid = alternate_bid
-            else:
-                return False
-            
-        if verbose:
-            print(f"Player {player_id} has just bid {bid if bid > self.min_bid else 'Pass'}")
-            
-        if bid > self.min_bid:
-            self.min_bid = bid
-            
-            if verbose:
-                print(f"The new minimum bid has been set to {self.min_bid}")
-            
-        if len(self.bids) == len(self.player_ids):
-            self.bids[player_id] = bid
-        else:
-            self.bids.append(bid)
-        
-        valid_bids = []
-        
-        #TODO: Fix this up so that it works as it should. The bidding process is slightly messed up right now
-        for made_bids in self.bids:
-            if made_bids >= self.min_bid:
-                valid_bids.append(made_bids)
-            
-        if len(valid_bids) == 1 and len(self.bids) == len(self.player_ids):
-            highest_bidder_id = self.bids.index(valid_bids[0])
-            self.players[highest_bidder_id].set_bid(valid_bids[0])
-            self.bidding_stage = False
-            
-            if verbose:
-                print(f"Player {highest_bidder_id} has bid the highest at {self.bids[highest_bidder_id]}")
-            
-        elif not valid_bids:
-            self.bidding_stage = False
-            
-            if verbose:
-                print(f"Nobody bid, and bidding is over")
-    
+
     def finish_bidding(self, verbose=False) -> None:
         current_player_id = 0
         
@@ -164,6 +180,7 @@ class Game:
             
             if current_player_id >= len(self.player_ids):
                 current_player_id = 0
+
                 
     def play_trick(self, verbose=False) -> None:
         current_player_id = int(self.starting_player_id)
@@ -180,6 +197,7 @@ class Game:
                 current_player_id = 0
                 
         self.trick_pile.played_player_ids = []
+
                 
     def get_winner(self, verbose=False):
         if self.game_going == False:
