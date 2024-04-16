@@ -28,9 +28,9 @@ class Trick_Pile:
         return True
     
     def get_best_card(self, start_color) -> Card:
-        trump_cards = [card for card in self.played_cards if card.get_color() == start_color]
+        trump_cards = [card for card in self.played_cards if card.get_color() == self.trump_color or card.ROOK]
         
-        suit_cards = [card for card in self.played_cards if card.get_color() == self.trump_color]
+        suit_cards = [card for card in self.played_cards if card.get_color() == start_color]
         
         if trump_cards:
             return max(trump_cards, key=lambda card: card.get_number())

@@ -30,4 +30,26 @@ def request_trump_color() -> int:
     return int(input(f"Please enter the number of the color you would like to be the trump color:\n0 - Green\n1 - Black\n2 - Yellow\n3 - Red\n"))
 
 def request_nest_choice(player, nest) -> None:
-    pass
+    player_cards = player.get_playable_cards()
+    nest_cards = nest.get_cards()
+
+    print(f"Player {player.ID}'s current cards are: \n{player_cards}")
+    print(f"The current nest cards are:\n{nest_cards}")
+
+    number_of_swaps = int(input("How many swaps would you like to perform?"))
+
+    for swap in range(number_of_swaps):
+        print(f"Player {player.ID}'s current cards are: \n{player_cards}")
+        print(f"The current nest cards are:\n{nest_cards}")
+
+        player_card_index = int(input("What is the index of the player card you would like to swap? "))
+        nest_card_index = int(input("What is the index of the nest card you would like to swap? "))
+
+        player_card = player_cards[player_card_index]
+        nest_card = nest_cards[nest_card_index]
+
+        del player.playable_cards[player.playable_cards.index(player_card)]
+        del nest.cards[nest.cards.index(nest_card)]
+
+        player.playable_cards.append(nest_card)
+        nest.cards.append(player_card)

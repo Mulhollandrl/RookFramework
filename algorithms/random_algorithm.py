@@ -34,4 +34,12 @@ def random_bid(min_bid, max_bid) -> int:
     return random.randint(min_bid, max_bid)
 
 def random_nest_choice(player, nest) -> None:
-    pass
+    for card_swap in range(random.randint(0, 6)):
+        player_card = random.choice(player.get_playable_cards())
+        nest_card = random.choice(nest.get_cards())
+
+        del player.playable_cards[player.playable_cards.index(player_card)]
+        del nest.cards[nest.cards.index(nest_card)]
+
+        player.playable_cards.append(nest_card)
+        nest.cards.append(player_card)

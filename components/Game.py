@@ -1,6 +1,6 @@
 import random
-from algorithms.human_player import request_bid, request_move, request_trump_color
-from algorithms.random_algorithm import random_bid, random_play, random_trump_color
+from algorithms.human_player import request_bid, request_move, request_nest_choice, request_trump_color
+from algorithms.random_algorithm import random_bid, random_nest_choice, random_play, random_trump_color
 from components.Card import Card
 from components.Nest import Nest
 from components.Trick_Pile import Trick_Pile
@@ -101,8 +101,10 @@ class Game:
 
             if player_id in self.random_player_ids:
                 self.trump_color = random_trump_color()
+                random_nest_choice(self.players[player_id], self.nest)
             elif player_id in self.human_player_ids:
                 self.trump_color = request_trump_color()
+                request_nest_choice(self.players[player_id], self.nest)
             
             if verbose:
                 print(f"Player {highest_bidder_id} has bid the highest at {self.bids[highest_bidder_id]}")
