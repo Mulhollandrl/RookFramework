@@ -28,3 +28,6 @@ def request_bid(min_bid, max_bid) -> int:
 
 def request_trump_color() -> int:
     return int(input(f"Please enter the number of the color you would like to be the trump color:\n0 - Green\n1 - Black\n2 - Yellow\n3 - Red\n"))
+
+def request_nest_choice(player, nest) -> None:
+    pass

@@ -5,7 +5,7 @@ from components.Card import Card
 from components.Nest import Nest
 from components.Trick_Pile import Trick_Pile
 from enums.CARD_POINTS import CARD_POINTS
-from enums.COLORS import COLORS
+from enums.COLORS import COLORS, REVERSE_COLORS
 
 
 class Game:
@@ -38,7 +38,7 @@ class Game:
             for number in range(1, 15):
                 cards.append(Card(number, color, False))
                 
-        cards.append(Card(0, 20, True))
+        cards.append(Card(20, 4, True))
         
         random.shuffle(cards)
         
@@ -106,7 +106,7 @@ class Game:
             
             if verbose:
                 print(f"Player {highest_bidder_id} has bid the highest at {self.bids[highest_bidder_id]}")
-                print(f"The trump color has been set to {next(key for key, value in COLORS.items() if value == self.trump_color)}")
+                print(f"The trump color has been set to {REVERSE_COLORS[self.trump_color]}")
             
         elif not valid_bids:
             self.bidding_stage = False
@@ -136,13 +136,13 @@ class Game:
             self.current_color = move.COLOR
             
             if verbose:
-                print(f"The Trick Color Is: {next(key for key, value in COLORS.items() if value == self.current_color) if not move.ROOK else 'Rook'}")
+                print(f"The Trick Color Is: {REVERSE_COLORS[self.current_color] if not move.ROOK else 'Rook'}")
             
         self.trick_pile.play_card(move, player_id)
         
         if verbose:
             print(f"Player {player_id} has just played \
-                  {next(key for key, value in COLORS.items() if value == move.COLOR) if not move.ROOK else 'Rook'} {move.NUMBER}")
+                  {REVERSE_COLORS[move.COLOR] if not move.ROOK else 'Rook'} {move.NUMBER}")
         
         if self.trick_pile.check_trick_completion(self.player_ids):
             winning_card = self.trick_pile.get_best_card(self.current_color)
@@ -163,11 +163,8 @@ class Game:
                 self.get_winner(verbose)
             
             if verbose:
-                try:
-                    print(f"Player {winning_player_id} has just won the trick with \
-                        {next(key for key, value in COLORS.items() if value == winning_card.COLOR) if not move.ROOK else 'Rook'} {winning_card.NUMBER if not move.ROOK else 'Rook'}")
-                except:
-                    print(move.COLOR, move.NUMBER, move.ROOK)
+                print(f"Player {winning_player_id} has just won the trick with \
+                    {'Rook' if move.ROOK else REVERSE_COLORS[winning_card.get_color()]} {winning_card.NUMBER}")
 
 
     def finish_bidding(self, verbose=False) -> None:
