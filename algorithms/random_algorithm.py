@@ -30,7 +30,10 @@ def random_play(player, trump_color, current_color) -> Card:
 def random_trump_color() -> int:
     return random.randint(0, 3)
 
-def random_bid(min_bid, max_bid) -> int:
+def random_bid() -> bool:
+    return bool(random.randint(0,1))
+
+def random_sealed_bid(min_bid, max_bid) -> int:
     return random.randint(min_bid, max_bid)
 
 def random_nest_choice(player, nest) -> None:

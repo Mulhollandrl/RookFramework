@@ -23,8 +23,10 @@ def request_move(player, trump_color, current_color) -> Card:
 
         return card_to_play
 
-def request_bid(min_bid, max_bid) -> int:
-    return int(input(f"Please bid a number between {min_bid} and {max_bid}. If you bid below the minimum, it counts as pass:"))
+def request_bid(current_bid) -> int:
+    bid = input(f"Would you like to bid 5 higher than {current_bid}? (N for No; Y for Yes)")
+
+    return bid == "Y"
 
 def request_trump_color() -> int:
     return int(input(f"Please enter the number of the color you would like to be the trump color:\n0 - Green\n1 - Black\n2 - Yellow\n3 - Red\n"))

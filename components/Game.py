@@ -18,9 +18,9 @@ class Game:
         self.min_bid = min_bid
         self.max_bid = max_bid
 
-        self.current_min_bid = min_bid
-        self.round_min_bid = min_bid
+        self.current_bid = min_bid
         self.made_bid_player_ids = []
+        self.passed_player_ids = []
         
         self.player_ids = [player.ID for player in players]
 
@@ -64,63 +64,62 @@ class Game:
 
 
     def next_bid(self, player_id, alternate_bid=0, verbose=False) -> bool:
-        if player_id in self.random_player_ids:
-            bid = random_bid(self.min_bid, self.max_bid)
-        elif player_id in self.human_player_ids:
-            bid = request_bid(self.min_bid, self.max_bid)
-        else:
-            if not alternate_bid == 0:
-                bid = alternate_bid
-            else:
-                return False
-            
-        if verbose:
-            print(f"Player {player_id} has just bid {bid if bid > self.min_bid else 'Pass'}")
-            
-        if bid > self.current_min_bid:
-            self.current_min_bid = bid
-            
-            if verbose:
-                print(f"The new minimum bid has been set to {self.current_min_bid}")
-            
-        if len(self.bids) == len(self.player_ids):
-            self.bids[player_id] = bid
-        else:
-            self.bids.append(bid)
-        
-        valid_bids = []
-        
-        for made_bids in self.bids:
-            if made_bids >= self.round_min_bid:
-                valid_bids.append(made_bids)
-            
-        if len(valid_bids) == 1 and len(self.bids) == len(self.player_ids):
-            highest_bidder_id = self.bids.index(valid_bids[0])
-            self.players[highest_bidder_id].set_bid(valid_bids[0])
-            self.bidding_stage = False
-
+        if not player_id in self.passed_player_ids:
             if player_id in self.random_player_ids:
-                self.trump_color = random_trump_color()
-                random_nest_choice(self.players[player_id], self.nest)
+                bid = random_bid()
             elif player_id in self.human_player_ids:
-                self.trump_color = request_trump_color()
-                request_nest_choice(self.players[player_id], self.nest)
-            
+                bid = request_bid(self.current_bid)
+            else:
+                if not alternate_bid == 0:
+                    bid = alternate_bid
+                else:
+                    return False
+                
             if verbose:
-                print(f"Player {highest_bidder_id} has bid the highest at {self.bids[highest_bidder_id]}")
-                print(f"The trump color has been set to {REVERSE_COLORS[self.trump_color]}")
+                print(f"Player {player_id} has just bid {self.current_bid + 5 if bid else 'Pass'}")
+                
+            if bid:
+                self.current_bid += 5
+                
+                if verbose:
+                    print(f"The bid has been set to {self.current_bid}")
+            else:
+                self.passed_player_ids.append(player_id)
+                
+            if len(self.bids) == len(self.player_ids):
+                self.bids[player_id] = self.current_bid if bid else 0
+            else:
+                self.bids.append(self.current_bid if bid else 0) 
             
-        elif not valid_bids:
-            self.bidding_stage = False
-            
-            if verbose:
-                print(f"Nobody bid, and bidding is over")
+            if len(self.passed_player_ids) == len(self.player_ids) - 1:
+                self.bidding_stage = False
 
-        self.made_bid_player_ids.append(player_id)
+                highest_bidder_id = self.bids.index(max(self.bids))
+                self.players[highest_bidder_id].set_bid(max(self.bids))
 
-        if len(self.made_bid_player_ids) == len(self.player_ids):
-            self.made_bid_player_ids = []
-            self.round_min_bid = self.current_min_bid
+                if highest_bidder_id in self.random_player_ids:
+                    self.trump_color = random_trump_color()
+                    random_nest_choice(self.players[highest_bidder_id], self.nest)
+                elif highest_bidder_id in self.human_player_ids:
+                    self.trump_color = request_trump_color()
+                    request_nest_choice(self.players[highest_bidder_id], self.nest)
+
+                if verbose:
+                    print(f"Player {highest_bidder_id} has bid the highest at {max(self.bids)}")
+                    print(f"The trump color has been set to {REVERSE_COLORS[self.trump_color]}")
+
+            self.made_bid_player_ids.append(player_id)
+
+            if len(self.made_bid_player_ids) == len(self.player_ids):
+                self.made_bid_player_ids = [player_id for player_id in self.passed_player_ids]
+
+                if max(self.bids) == 0:
+                    self.bidding_stage = False
+                    
+                    if verbose:
+                        print(f"Nobody bid, and bidding is over")
+        else:
+            return False
 
                 
     def next_player_move(self, player_id, alternate_move=0, verbose=False) -> bool:
@@ -135,7 +134,7 @@ class Game:
                 return False
             
         if not self.trick_pile.played_cards:
-            self.current_color = move.COLOR
+            self.current_color = move.COLOR if not move.ROOK else self.trump_color
             
             if verbose:
                 print(f"The Trick Color Is: {REVERSE_COLORS[self.current_color] if not move.ROOK else 'Rook'}")
@@ -173,10 +172,11 @@ class Game:
         current_player_id = 0
         
         while self.bidding_stage:
-            if verbose:
-                print(f"Player {current_player_id} is now bidding")
-                
-            self.next_bid(current_player_id, verbose=verbose)
+            if not current_player_id in self.passed_player_ids:
+                if verbose:
+                    print(f"Player {current_player_id} is now bidding")
+                    
+                self.next_bid(current_player_id, verbose=verbose)
             
             current_player_id += 1
             
