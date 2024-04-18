@@ -1,5 +1,5 @@
 from components.Game import Game
-from components.GreedyPlayer import GreedyPlayer
+from components.StrategicPlayer import StrategicPlayer
 from components.Player import Player
 from components.RandomPlayer import RandomPlayer
 
@@ -7,9 +7,9 @@ if __name__ == "__main__":
     # player1 = RandomPlayer(0)
     # player2 = RandomPlayer(1)
     # player3 = RandomPlayer(2)
-    player1 = GreedyPlayer(0)
-    player2 = GreedyPlayer(1)
-    player3 = GreedyPlayer(2)
+    player1 = StrategicPlayer(0)
+    player2 = StrategicPlayer(1)
+    player3 = StrategicPlayer(2)
 
     play_again = True
 
@@ -29,7 +29,7 @@ if __name__ == "__main__":
         else:
             bidding_style = "english"
 
-        print(f"Starting a game with {bidding_style} bidding, with 3 greedy players playing. The game will {'' if verbose else 'not '} tell you what is happening.")
+        print(f"Starting a game with {bidding_style} bidding, with 3 strategic players playing. The game will {'' if verbose else 'not '} tell you what is happening.")
 
         game = Game(
             players=[player1, player2, player3],

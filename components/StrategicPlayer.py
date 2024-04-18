@@ -1,10 +1,8 @@
-import random
-
 from components import Card
 from components.Player import Player
 
 
-class GreedyPlayer(Player):
+class StrategicPlayer(Player):
     def __init__(self, player_id):
         super().__init__(player_id)
 
@@ -41,12 +39,28 @@ class GreedyPlayer(Player):
             first_priority_cards = [card for card in cards if card.COLOR == trick.trick_color]
             second_priority_cards = [card for card in cards if card.COLOR == trick.trump_color or card.COLOR == 4]
 
-            if first_priority_cards:
-                card_to_play = max(first_priority_cards, key=lambda card: card.NUMBER)
+            lowest_loss_card = min(cards, key=lambda card: self.get_card_strength(card, trick.trump_color))
+            leading_card = trick.get_best_card()
+
+            if leading_card == None:
+                scoring_card = max(cards, key=lambda card: -1 if card.COLOR == 4 or card.COLOR == trick.trump_color else card.POINTS)
+                if scoring_card.POINTS > 0:
+                    card_to_play = scoring_card
+                else:
+                    card_to_play = lowest_loss_card
+            elif first_priority_cards:
+                first_priority_cards.sort(key=lambda card: self.get_card_strength(card, trick.trump_color, trick.trick_color))
+                if trick.score > 0 and self._compare_cards(leading_card, first_priority_cards[-1], trick.trump_color, trick.trick_color) == 2:
+                    card_to_play = first_priority_cards[-1]
+                else:
+                    card_to_play = first_priority_cards[0]
             elif second_priority_cards:
-                card_to_play = max(second_priority_cards, key=lambda card: card.NUMBER)
+                if trick.score > 0 and self._compare_cards(leading_card, second_priority_cards[-1], trick.trump_color, trick.trick_color) == 2:
+                    card_to_play = second_priority_cards[-1]
+                else:
+                    card_to_play = second_priority_cards[0]
             else:
-                card_to_play = min(cards, key=lambda card: card.NUMBER)
+                card_to_play = lowest_loss_card
 
             self.playable_cards = [card for card in cards if not card == card_to_play]
 
