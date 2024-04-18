@@ -98,16 +98,36 @@ class Player:
             return 1
         elif trump_color is not None and trick_color is not None:
             if card.COLOR == trump_color:
+                # any card can always defeat lower-numbered cards of the same color, regardless of trump color
+                # so we'll say that every card starts with the power to defeat the cards of one suit up to the card number
                 defeatable_cards = card.NUMBER - 1
+
+                # since a player only plays once per trick, other cards in this player's hand can't be played against this card
+                # so we'll count higher-numbered cards of the same color as defeatable if they are in this player's hand
+                defeatable_cards += len([trump for trump in self.playable_cards if (trump.COLOR == card.COLOR and trump.NUMBER > card.NUMBER) or trump.COLOR == 4])
+
+                # cards of the trump color will always defeat cards of the other three colors, regardless of the trick color and regardless of the numbers of the non-trump cards
+                # so we'll say that, as a trump card, this card can also defeat all cards of the any other color
                 defeatable_cards += 42
-                held_trump_cards = [trump for trump in self.playable_cards if (trump.COLOR == trump_color and trump.NUMBER > card.NUMBER) or trump.COLOR == 4]
-                defeatable_cards -= len(held_trump_cards)
+
+                # calculate the card's strength as a percentage of the other cards in the deck that it has can defeat
+                # a Rook deck has 57 cards in total (1-14 in four colors, plus 1 Rook), which means that there are 56 cards to consider as potential competition for this one
                 return defeatable_cards / 56
             elif card.COLOR == trick_color:
+                # any card can always defeat lower-numbered cards of the same color, regardless of trump color
+                # so we'll say that every card starts with the power to defeat the cards of one suit up to the card number
                 defeatable_cards = card.NUMBER - 1
+
+                # since a player only plays once per trick, other cards in this player's hand can't be played against this card
+                # so we'll count higher-numbered cards of the same color as defeatable if they are in this player's hand
+                defeatable_cards += len([trick_card for trick_card in self.playable_cards if ((trick_card.COLOR == trick_color or trick_card.COLOR == trump_color) and trick_card.NUMBER > card.NUMBER) or trick_card.COLOR == 4])
+
+                # cards of the trick color will always defeat non-trump cards of other colors
+                # so we'll say that, as a trick card, this card can defeat all cards of the two colors that are neither trump nor trick
                 defeatable_cards += 28
-                held_trick_cards = [trick_card for trick_card in self.playable_cards if ((trick_card.COLOR == trick_color or trick_card.COLOR == trump_color) and trick_card.NUMBER > card.NUMBER) or trick_card.COLOR == 4]
-                defeatable_cards -= len(held_trick_cards)
+
+                # calculate the card's strength as a percentage of the other cards in the deck that it has can defeat
+                # a Rook deck has 57 cards in total (1-14 in four colors, plus 1 Rook), which means that there are 56 cards to consider as potential competition for this one
                 return defeatable_cards / 56
             else:
                 return 0
