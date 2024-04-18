@@ -34,3 +34,8 @@ class Player:
             self.score = 0
             for card in self.won_cards:
                 self.score += card.POINTS
+
+    def reset(self):
+        self.playable_cards = []
+        self.won_cards = []
+        self.score = None

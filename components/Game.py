@@ -5,7 +5,8 @@ from components.Trick import Trick
 
 
 class Game:
-    def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120) -> None:
+    def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False) -> None:
+        self.verbose = verbose
         self.players = players
         self.starting_player_id = int(starting_player_id)
         self.bidding_style = bidding_style
@@ -18,22 +19,22 @@ class Game:
         self.winning_bid = None
         self.trump_color = None
 
-        cards = []
+        self.deal_cards()
 
+        self.remaining_tricks = 52 // len(self.players)
+
+        self.in_bidding_stage = True
+
+            
+    def deal_cards(self) -> None:
+        cards = []
         for color in range(4):
             for number in range(1, 15):
                 cards.append(Card(number, color, False))
 
         cards.append(Card(20, 4, True))
 
-        self.remaining_tricks = len(cards) // len(players)
-
         random.shuffle(cards)
-
-        self.deal_cards(cards)
-
-            
-    def deal_cards(self, cards) -> None:
         self.nest.set_cards(cards[:6])
         del cards[:6]
         
@@ -50,22 +51,40 @@ class Game:
             if current_player_id >= len(self.players):
                 current_player_id = 0
 
-    def play(self, verbose=False):
+
+    def reset(self):
+        self.nest = Nest([])
+
+        self.bid_winner = None
+        self.winning_bid = None
+        self.trump_color = None
+
+        self.deal_cards()
+
+        self.remaining_tricks = 52 // len(self.players)
+
+        for player in self.players:
+            player.reset()
+
+        self.in_bidding_stage = True
+
+
+    def play(self):
         if self.bidding_style == "sealed":
-            self.bid_sealed_style(verbose)
+            self.bid_sealed_style()
         elif self.bidding_style == "dutch":
-            self.bid_dutch_style(verbose)
+            self.bid_dutch_style()
         else:
-            self.bid_english_style(verbose)
+            self.bid_english_style()
 
         while self.remaining_tricks > 0:
-            self.play_trick(verbose)
+            self.play_trick()
             self.remaining_tricks -= 1
 
-        self.end(verbose)
+        self.end()
 
 
-    def bid_sealed_style(self, verbose):
+    def bid_sealed_style(self):
         top_bidder = None
         top_bid = self.min_bid - 1
         for player in self.players:
@@ -73,21 +92,21 @@ class Game:
             if bid > top_bid:
                 top_bid = bid
                 top_bidder = player
-            if verbose:
+            if self.verbose:
                 print(f"Player {player.ID} bids {bid}")
 
         self.bid_winner = top_bidder
         self.winning_bid = top_bid
 
-        if verbose:
+        if self.verbose:
             print(f"Player {top_bidder.ID} wins the bid at {top_bid}")
 
 
-    def bid_dutch_style(self, verbose):
+    def bid_dutch_style(self):
         potential_bidders = self.get_ordered_players()
         current_bid = self.max_bid
 
-        if verbose:
+        if self.verbose:
             print(f"Starting the bidding at {current_bid}")
 
         while current_bid >= self.min_bid:
@@ -95,26 +114,27 @@ class Game:
             while self.bid_winner is None and bidder_index < len(potential_bidders):
                 bidder = potential_bidders[bidder_index]
                 if bidder.get_dutch_bid(current_bid):
-                    if verbose:
+                    if self.verbose:
                         print(f"Player {bidder.ID} took the bid at {current_bid}")
                     self.bid_winner = bidder
                     self.winning_bid = current_bid
                 bidder_index += 1
-            if verbose:
+            if self.verbose:
                 print(f"No players took the bid at {current_bid}.")
             current_bid -= 5
 
         if self.bid_winner is None:
             self.bid_winner = potential_bidders[0]
             self.winning_bid = self.min_bid
-            if verbose:
+            if self.verbose:
                 print(f"No one bid. As the starting bidder, player {self.bid_winner} wins the bid at {self.winning_bid} by default.")
 
 
-    def bid_english_style(self, verbose):
+    def bid_english_style(self):
         bidding_players = self.get_ordered_players()
 
         current_bid = self.min_bid
+        leading_bidder = bidding_players[0]
         bidder_index = 1
         while len(bidding_players) > 1:
             while bidder_index < len(bidding_players):
@@ -122,30 +142,31 @@ class Game:
                 if bidding_player.get_english_bid(current_bid + 5):
                     current_bid += 5
                     bidder_index += 1
-                    if verbose:
+                    leading_bidder = bidding_player
+                    if self.verbose:
                         print(f"Player {bidding_player.ID} bid {current_bid}")
                 else:
                     bidding_players.pop(bidder_index)
-                    if verbose:
+                    if self.verbose:
                         print(f"Player {bidding_player.ID} passed on bidding {current_bid + 5}")
             bidder_index = 0
 
-        self.bid_winner = bidding_players[0]
+        self.bid_winner = leading_bidder
         self.winning_bid = current_bid
 
-        if verbose:
+        if self.verbose:
             print(f"Player {self.bid_winner.ID} wins the bid at {self.winning_bid}")
 
 
-    def play_trick(self, verbose=False) -> None:
+    def play_trick(self=False) -> None:
         trick = Trick(self.trump_color)
         for player in self.get_ordered_players():
-            if verbose:
+            if self.verbose:
                 print(f"Player {player.ID} is now playing a card")
 
             played_card = player.play_card(trick)
 
-            if verbose:
+            if self.verbose:
                 print(f"Player {player.ID} played {played_card}")
                 if player.ID == self.starting_player_id:
                     print(f"The trick color is {trick.trick_color}")
@@ -154,27 +175,27 @@ class Game:
         winner.win_trick(trick.played_cards)
         self.starting_player_id = winner.ID
 
-        if verbose:
+        if self.verbose:
             print(f"Player {winner.ID} wins the trick with the {trick.get_best_card()}.")
 
 
-    def end(self, verbose):
+    def end(self):
         for player in self.players:
             player.score_game()
 
-        bid_matched = self.bid_winner.score >= self.winning_bid
+        bid_fulfilled = self.bid_winner.score >= self.winning_bid
 
-        if bid_matched:
+        if bid_fulfilled:
             self.bid_winner.score -= self.winning_bid
 
         winner = self.get_winner()
 
-        if verbose:
+        if self.verbose:
             print(f"The game has ended!")
-            if bid_matched:
-                print(f"Player {self.bid_winner.ID} failed to match their bid, so {self.winning_bid} points were deducted from their score.")
+            if bid_fulfilled:
+                print(f"Player {self.bid_winner.ID} failed to fulfill their bid, so {self.winning_bid} points were deducted from their score.")
             else:
-                print(f"Player {self.bid_winner.ID} matched their bid. No points were deducted from their score.")
+                print(f"Player {self.bid_winner.ID} fulfilled their bid. No points were deducted from their score.")
 
             print(f"Player {winner.ID} has won with {winner.score} points!")
 
