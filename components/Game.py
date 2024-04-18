@@ -1,51 +1,39 @@
 import random
-from algorithms.human_player import request_bid, request_move, request_nest_choice, request_trump_color
-from algorithms.random_algorithm import random_bid, random_nest_choice, random_play, random_trump_color
 from components.Card import Card
 from components.Nest import Nest
-from components.Trick_Pile import Trick_Pile
-from enums.CARD_POINTS import CARD_POINTS
-from enums.COLORS import COLORS, REVERSE_COLORS
+from components.Trick import Trick
 
 
 class Game:
-    def __init__(self, trump_color, players, starting_player_id, random_player_ids, human_player_ids, min_bid=40, max_bid=120) -> None:
-        self.trump_color = trump_color
+    def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120) -> None:
         self.players = players
-        self.starting_player_id = starting_player_id
-        self.random_player_ids = random_player_ids
-        self.human_player_ids = human_player_ids
+        self.starting_player_id = int(starting_player_id)
+        self.bidding_style = bidding_style
         self.min_bid = min_bid
         self.max_bid = max_bid
 
-        self.current_bid = min_bid
-        self.made_bid_player_ids = []
-        self.passed_player_ids = []
-        
-        self.player_ids = [player.ID for player in players]
-
-        self.trick_pile = Trick_Pile(self.trump_color)
         self.nest = Nest([])
 
-        self.game_going = True
-        self.bidding_stage = True
-        self.current_color = None
-        self.bids = []
-        
+        self.bid_winner = None
+        self.winning_bid = None
+        self.trump_color = None
+
         cards = []
-        
+
         for color in range(4):
             for number in range(1, 15):
                 cards.append(Card(number, color, False))
-                
+
         cards.append(Card(20, 4, True))
-        
+
+        self.remaining_tricks = len(cards) // len(players)
+
         random.shuffle(cards)
-        
-        self.divide_cards(cards)
+
+        self.deal_cards(cards)
 
             
-    def divide_cards(self, cards) -> None:
+    def deal_cards(self, cards) -> None:
         self.nest.set_cards(cards[:6])
         del cards[:6]
         
@@ -56,171 +44,153 @@ class Game:
 
             player = self.players[current_player_id]
             
-            player.add_playable_cards([card])
+            player.deal_card(card)
             current_player_id += 1
             
             if current_player_id >= len(self.players):
                 current_player_id = 0
 
-
-    def next_bid(self, player_id, alternate_bid=0, verbose=False) -> bool:
-        if not player_id in self.passed_player_ids:
-            if player_id in self.random_player_ids:
-                bid = random_bid()
-            elif player_id in self.human_player_ids:
-                bid = request_bid(self.current_bid)
-            else:
-                if not alternate_bid == 0:
-                    bid = alternate_bid
-                else:
-                    return False
-                
-            if verbose:
-                print(f"Player {player_id} has just bid {self.current_bid + 5 if bid else 'Pass'}")
-                
-            if bid:
-                self.current_bid += 5
-                
-                if verbose:
-                    print(f"The bid has been set to {self.current_bid}")
-            else:
-                self.passed_player_ids.append(player_id)
-                
-            if len(self.bids) == len(self.player_ids):
-                self.bids[player_id] = self.current_bid if bid else 0
-            else:
-                self.bids.append(self.current_bid if bid else 0) 
-            
-            if len(self.passed_player_ids) == len(self.player_ids) - 1:
-                self.bidding_stage = False
-
-                highest_bidder_id = self.bids.index(max(self.bids))
-                self.players[highest_bidder_id].set_bid(max(self.bids))
-
-                if highest_bidder_id in self.random_player_ids:
-                    self.trump_color = random_trump_color()
-                    random_nest_choice(self.players[highest_bidder_id], self.nest)
-                elif highest_bidder_id in self.human_player_ids:
-                    self.trump_color = request_trump_color()
-                    request_nest_choice(self.players[highest_bidder_id], self.nest)
-
-                if verbose:
-                    print(f"Player {highest_bidder_id} has bid the highest at {max(self.bids)}")
-                    print(f"The trump color has been set to {REVERSE_COLORS[self.trump_color]}")
-
-            self.made_bid_player_ids.append(player_id)
-
-            if len(self.made_bid_player_ids) == len(self.player_ids):
-                self.made_bid_player_ids = [player_id for player_id in self.passed_player_ids]
-
-                if max(self.bids) == 0:
-                    self.bidding_stage = False
-                    
-                    if verbose:
-                        print(f"Nobody bid, and bidding is over")
+    def play(self, verbose=False):
+        if self.bidding_style == "sealed":
+            self.bid_sealed_style(verbose)
+        elif self.bidding_style == "dutch":
+            self.bid_dutch_style(verbose)
         else:
-            return False
+            self.bid_english_style(verbose)
 
-                
-    def next_player_move(self, player_id, alternate_move=0, verbose=False) -> bool:
-        if player_id in self.random_player_ids:
-            move = random_play(self.players[player_id], self.trump_color, self.current_color)
-        elif player_id in self.human_player_ids:
-            move = request_move(self.players[player_id], self.trump_color, self.current_color)
-        else:
-            if not alternate_move == 0:
-                move = alternate_move
-            else:
-                return False
-            
-        if not self.trick_pile.played_cards:
-            self.current_color = move.COLOR if not move.ROOK else self.trump_color
-            
+        while self.remaining_tricks > 0:
+            self.play_trick(verbose)
+            self.remaining_tricks -= 1
+
+        self.end(verbose)
+
+
+    def bid_sealed_style(self, verbose):
+        top_bidder = None
+        top_bid = self.min_bid - 1
+        for player in self.players:
+            bid = player.get_sealed_bid(self.min_bid, self.max_bid)
+            if bid > top_bid:
+                top_bid = bid
+                top_bidder = player
             if verbose:
-                print(f"The Trick Color Is: {REVERSE_COLORS[self.current_color] if not move.ROOK else 'Rook'}")
-            
-        self.trick_pile.play_card(move, player_id)
-        
+                print(f"Player {player.ID} bids {bid}")
+
+        self.bid_winner = top_bidder
+        self.winning_bid = top_bid
+
         if verbose:
-            print(f"Player {player_id} has just played \
-                  {REVERSE_COLORS[move.COLOR] if not move.ROOK else 'Rook'} {move.NUMBER}")
-        
-        if self.trick_pile.check_trick_completion(self.player_ids):
-            winning_card = self.trick_pile.get_best_card(self.current_color)
-            winning_player_id = self.trick_pile.get_winning_player_id(winning_card)
-            
-            self.players[winning_player_id].add_won_cards(self.trick_pile.played_cards)
-            
-            self.trick_pile.played_cards = []
-            self.starting_player_id = winning_player_id
-            
-            all_cards = []
-            [all_cards.extend(player.playable_cards) for player in self.players]
-            
-            if len(all_cards) < len(self.player_ids):
-                self.game_going = False
-                print(f"The game has ended!")
-                
-                self.get_winner(verbose)
-            
+            print(f"Player {top_bidder.ID} wins the bid at {top_bid}")
+
+
+    def bid_dutch_style(self, verbose):
+        potential_bidders = self.get_ordered_players()
+        current_bid = self.max_bid
+
+        if verbose:
+            print(f"Starting the bidding at {current_bid}")
+
+        while current_bid >= self.min_bid:
+            bidder_index = 0
+            while self.bid_winner is None and bidder_index < len(potential_bidders):
+                bidder = potential_bidders[bidder_index]
+                if bidder.get_dutch_bid(current_bid):
+                    if verbose:
+                        print(f"Player {bidder.ID} took the bid at {current_bid}")
+                    self.bid_winner = bidder
+                    self.winning_bid = current_bid
+                bidder_index += 1
             if verbose:
-                print(f"Player {winning_player_id} has just won the trick with \
-                    {'Rook' if move.ROOK else REVERSE_COLORS[winning_card.get_color()]} {winning_card.NUMBER}")
+                print(f"No players took the bid at {current_bid}.")
+            current_bid -= 5
 
-
-    def finish_bidding(self, verbose=False) -> None:
-        current_player_id = 0
-        
-        while self.bidding_stage:
-            if not current_player_id in self.passed_player_ids:
-                if verbose:
-                    print(f"Player {current_player_id} is now bidding")
-                    
-                self.next_bid(current_player_id, verbose=verbose)
-            
-            current_player_id += 1
-            
-            if current_player_id >= len(self.player_ids):
-                current_player_id = 0
-
-                
-    def play_trick(self, verbose=False) -> None:
-        current_player_id = int(self.starting_player_id)
-        
-        while len(self.trick_pile.played_player_ids) < len(self.player_ids):
+        if self.bid_winner is None:
+            self.bid_winner = potential_bidders[0]
+            self.winning_bid = self.min_bid
             if verbose:
-                print(f"Player {current_player_id} is now playing a card")
-                
-            self.next_player_move(current_player_id, verbose=verbose)
-            
-            current_player_id += 1
-            
-            if current_player_id >= len(self.player_ids):
-                current_player_id = 0
-                
-        self.trick_pile.played_player_ids = []
+                print(f"No one bid. As the starting bidder, player {self.bid_winner} wins the bid at {self.winning_bid} by default.")
 
-                
-    def get_winner(self, verbose=False):
-        if self.game_going == False:
-            current_highest_score = -120
-            current_highest_scoring_player_id = 0
-            
-            for player in self.players:
-                win_amount = 0
-                
-                for card in player.get_won_cards():
-                    win_amount += card.get_points()
-                    
-                if win_amount >= player.get_bid():
-                    win_amount += player.get_bid()
+
+    def bid_english_style(self, verbose):
+        bidding_players = self.get_ordered_players()
+
+        current_bid = self.min_bid
+        bidder_index = 1
+        while len(bidding_players) > 1:
+            while bidder_index < len(bidding_players):
+                bidding_player = bidding_players[bidder_index]
+                if bidding_player.get_english_bid(current_bid + 5):
+                    current_bid += 5
+                    bidder_index += 1
+                    if verbose:
+                        print(f"Player {bidding_player.ID} bid {current_bid}")
                 else:
-                    win_amount -= player.get_bid()
-                    
-                if win_amount > current_highest_score:
-                    current_highest_score = win_amount
-                    current_highest_scoring_player_id = player.ID
-                    
+                    bidding_players.pop(bidder_index)
+                    if verbose:
+                        print(f"Player {bidding_player.ID} passed on bidding {current_bid + 5}")
+            bidder_index = 0
+
+        self.bid_winner = bidding_players[0]
+        self.winning_bid = current_bid
+
+        if verbose:
+            print(f"Player {self.bid_winner.ID} wins the bid at {self.winning_bid}")
+
+
+    def play_trick(self, verbose=False) -> None:
+        trick = Trick(self.trump_color)
+        for player in self.get_ordered_players():
             if verbose:
-                print(f"Player {current_highest_scoring_player_id} has won with {current_highest_score}!")
-                    
+                print(f"Player {player.ID} is now playing a card")
+
+            played_card = player.play_card(trick)
+
+            if verbose:
+                print(f"Player {player.ID} played {played_card}")
+                if player.ID == self.starting_player_id:
+                    print(f"The trick color is {trick.trick_color}")
+
+        winner = self.players[trick.get_winner_id()]
+        winner.win_trick(trick.played_cards)
+        self.starting_player_id = winner.ID
+
+        if verbose:
+            print(f"Player {winner.ID} wins the trick with the {trick.get_best_card()}.")
+
+
+    def end(self, verbose):
+        for player in self.players:
+            player.score_game()
+
+        bid_matched = self.bid_winner.score >= self.winning_bid
+
+        if bid_matched:
+            self.bid_winner.score -= self.winning_bid
+
+        winner = self.get_winner()
+
+        if verbose:
+            print(f"The game has ended!")
+            if bid_matched:
+                print(f"Player {self.bid_winner.ID} failed to match their bid, so {self.winning_bid} points were deducted from their score.")
+            else:
+                print(f"Player {self.bid_winner.ID} matched their bid. No points were deducted from their score.")
+
+            print(f"Player {winner.ID} has won with {winner.score} points!")
+
+
+    def get_winner(self):
+        return max(self.players, key=lambda player: player.score)
+
+
+    def get_ordered_players(self):
+        ordered_players = []
+        number_of_players = len(self.players)
+        next_player_id = self.starting_player_id
+
+        while len(ordered_players) < number_of_players:
+            ordered_players.append(self.players[next_player_id])
+            next_player_id += 1
+            if next_player_id == number_of_players:
+                next_player_id = 0
+        return ordered_players
