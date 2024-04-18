@@ -9,31 +9,30 @@ class GreedyPlayer(Player):
         super().__init__(player_id)
 
     def get_english_bid(self, next_bid) -> bool:
-        if self._hand_valuation is None:
-            self._evaluate_hand_strength()
-        return next_bid <= self._hand_valuation
+        return next_bid <= self.estimate_hand_potential()
 
     def get_sealed_bid(self, min_bid, max_bid) -> int:
-        if self._hand_valuation is None:
-            self._evaluate_hand_strength()
-        return self._hand_valuation
+        return self.estimate_hand_potential()
 
     def get_dutch_bid(self, bid) -> bool:
-        if self._hand_valuation is None:
-            self._evaluate_hand_strength()
-        return bid <= self._hand_valuation
+        return bid <= self.estimate_hand_potential()
 
     def get_trump_suit(self) -> int:
+        if self.best_color is None:
+            self.estimate_hand_potential()
+
         return self.best_color
 
     def exchange_with_nest(self, nest) -> None:
-        weakest_card = min(self.playable_cards, key=lambda card: self.get_card_strength(card))
-        weakest_card_index = self.playable_cards.index(weakest_card)
-        for i in range(len(nest)):
-            if self.get_card_strength(nest[i]) > self.get_card_strength(weakest_card):
-                temp = self.playable_cards[weakest_card_index]
-                self.playable_cards[weakest_card_index] = nest[i]
-                nest[i] = temp
+        self.playable_cards.sort(key=lambda card: self.get_card_strength(card))
+        nest.sort(key=lambda card: self.get_card_strength(card), reverse=True)
+
+        search_index = 0
+        while search_index < len(self.playable_cards) and search_index < len(nest) and nest[search_index] > self.playable_cards[search_index]:
+            temp = self.playable_cards[search_index]
+            self.playable_cards[search_index] = nest[search_index]
+            nest[search_index] = temp
+            search_index += 1
 
     def play_card(self, trick) -> Card:
         cards = self.playable_cards

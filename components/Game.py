@@ -183,21 +183,30 @@ class Game:
         for player in self.players:
             player.score_game()
 
-        bid_fulfilled = self.bid_winner.score >= self.winning_bid
+        bid_unfulfilled = self.bid_winner.score < self.winning_bid
 
-        if bid_fulfilled:
+
+        if self.verbose:
+            print(f"The game has ended!")
+            if bid_unfulfilled:
+                print(f"Player {self.bid_winner.ID} failed to fulfill their bid, earning only {self.bid_winner.score} of the expected {self.winning_bid} points, so {self.winning_bid} points were deducted from their score.")
+            else:
+                print(f"Player {self.bid_winner.ID} fulfilled their bid of {self.winning_bid} with {self.bid_winner.score}. No points were deducted from their score.")
+
+        if bid_unfulfilled:
             self.bid_winner.score -= self.winning_bid
 
         winner = self.get_winner()
 
         if self.verbose:
-            print(f"The game has ended!")
-            if bid_fulfilled:
-                print(f"Player {self.bid_winner.ID} failed to fulfill their bid, so {self.winning_bid} points were deducted from their score.")
-            else:
-                print(f"Player {self.bid_winner.ID} fulfilled their bid. No points were deducted from their score.")
-
             print(f"Player {winner.ID} has won with {winner.score} points!")
+
+            scoreboard = [player for player in self.players]
+            scoreboard.sort(key=lambda player: player.score, reverse=True)
+
+            print("Scoreboard:")
+            for scorer in scoreboard:
+                print(f"\tPlayer {scorer.ID}: {scorer.score}")
 
 
     def get_winner(self):
