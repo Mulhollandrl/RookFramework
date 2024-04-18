@@ -30,9 +30,9 @@ class Game:
         cards = []
         for color in range(4):
             for number in range(1, 15):
-                cards.append(Card(number, color, False))
+                cards.append(Card(number, color))
 
-        cards.append(Card(20, 4, True))
+        cards.append(Card(20, 4))
 
         random.shuffle(cards)
         self.nest.set_cards(cards[:6])

@@ -37,7 +37,7 @@ class RandomPlayer(Player):
 
         if cards:
             first_priority_cards = [card for card in cards if card.COLOR == trick.trick_color]
-            second_priority_cards = [card for card in cards if card.COLOR == trick.trump_color or card.ROOK]
+            second_priority_cards = [card for card in cards if card.COLOR == trick.trump_color or card.COLOR == 4]
 
             if first_priority_cards:
                 card_to_play = random.choice(first_priority_cards)

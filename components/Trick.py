@@ -27,7 +27,7 @@ class Trick:
         self.played_player_ids.append(player_id)
     
     def get_best_card(self) -> Card:
-        trump_cards = [card for card in self.played_cards if card.get_color() == self.trump_color or card.ROOK]
+        trump_cards = [card for card in self.played_cards if card.get_color() == self.trump_color or card.COLOR == 4]
         
         suit_cards = [card for card in self.played_cards if card.get_color() == self.trick_color]
         
