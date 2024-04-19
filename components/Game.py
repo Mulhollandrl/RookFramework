@@ -2,10 +2,10 @@ import random
 from components.Card import Card
 from components.Nest import Nest
 from components.Trick import Trick
-
+from utilities.GameLoader import GameLoader
 
 class Game:
-    def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False) -> None:
+    def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False, save_deal_location="") -> None:
         self.verbose = verbose
         self.players = players
         self.starting_player_id = int(starting_player_id)
@@ -20,6 +20,10 @@ class Game:
         self.trump_color = None
 
         self.deal_cards()
+
+        # If there's a filepath to save the dealt hands to, then save them there
+        if save_deal_location != "":
+            self.save_deal(save_deal_location)
 
         self.remaining_tricks = 52 // len(self.players)
 
@@ -224,3 +228,9 @@ class Game:
             if next_player_id == number_of_players:
                 next_player_id = 0
         return ordered_players
+    
+    
+    # Saves a json representation of the dealt cards to be loaded in later
+    def save_deal(self, save_deal_location):
+        with open(save_deal_location, 'w') as fout:
+            GameLoader.save_hands(self.players, self.nest, fout)

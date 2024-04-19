@@ -1,9 +1,23 @@
+import argparse
+from sys import argv
+
 from components.Game import Game
+from components.PresetGame import PresetGame
 from components.StrategicPlayer import StrategicPlayer
 from components.Player import Player
 from components.RandomPlayer import RandomPlayer
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        '--hand',
+        nargs='?',
+        default='',
+        help='specifies json file of pre-generated hand created by "generate_hands.py"'
+    )
+    args = parser.parse_args()
+    preloaded_hand_filename = args.hand
+
     # player1 = RandomPlayer(0)
     # player2 = RandomPlayer(1)
     # player3 = RandomPlayer(2)
@@ -31,12 +45,22 @@ if __name__ == "__main__":
 
         print(f"Starting a game with {bidding_style} bidding, with 3 strategic players playing. The game will {'' if verbose else 'not '} tell you what is happening.")
 
-        game = Game(
-            players=[player1, player2, player3],
-            starting_player_id=0,
-            bidding_style=bidding_style,
-            verbose=verbose
-        )
+        if preloaded_hand_filename != '':
+            game = PresetGame(
+                players=[player1, player2, player3],
+                starting_player_id=0,
+                bidding_style=bidding_style,
+                verbose=verbose,
+                load_game_location=preloaded_hand_filename
+            )
+
+        else:
+            game = Game(
+                players=[player1, player2, player3],
+                starting_player_id=0,
+                bidding_style=bidding_style,
+                verbose=verbose,
+            )
 
         game.play()
 
