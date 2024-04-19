@@ -5,12 +5,13 @@ from components.Trick import Trick
 from components.Game import Game
 from utilities.GameLoader import GameLoader
 
+'''
+    A variant of the Game class that expects to receive a json file
+    describing everyone's pre-generated hands.
+'''
 class PresetGame(Game):
-    """
-    A variant of the Game class that expects to 
-    """
 
-    def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False, load_game_location=""):
+    def __init__(self, load_game_location, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False):
         self.load_game_location = load_game_location
         
         # Don't allow for saving from a loaded game by setting save_deal_location to the blank string
@@ -18,14 +19,23 @@ class PresetGame(Game):
 
 
     def deal_cards(self) -> None:
-        with open(self.load_game_location, 'r') as fin:
-            data = GameLoader.load_hands(fin)
+        try:
+            with open(self.load_game_location, 'r') as fin:
+                data = GameLoader.load_hands(fin)
 
-        self.nest.set_cards(data['nest'])
+            self.nest.set_cards(data['nest'])
 
-        for i in range(0, len(self.players)):
-            for card_from_preset_hand in data['players'][str(i)]:
-                self.players[i].deal_card(card_from_preset_hand)
+            for i in range(0, len(self.players)):
+                for card_from_preset_hand in data['players'][str(i)]:
+                    self.players[i].deal_card(card_from_preset_hand)
+        except FileNotFoundError:
+            print(f'Preloaded-hand input file "{self.load_game_location}" does not exist.  Exiting...')
+            exit(1)
+        except KeyError as keyerr:
+            # Not sure what the Python-approved way to do this is so
+            # https://stackoverflow.com/questions/13745514/get-key-name-from-python-keyerror-exception
+            print(f'Key "{keyerr.args[0]}" missing in json file "{self.load_game_location}".  Exiting...')
+            exit(1)
 
 
     def reset(self):

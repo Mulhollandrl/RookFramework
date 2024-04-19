@@ -11,12 +11,22 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument(
         '--hand',
-        nargs='?',
-        default='',
+        nargs=1,
+        default=[''],
+        required=False,
         help='specifies json file of pre-generated hand created by "generate_hands.py"'
     )
+    parser.add_argument(
+        '--save',
+        nargs=1,
+        required=False,
+        default=[''],
+        help='specifies json file location to save hands generate at start of game'
+    )
     args = parser.parse_args()
-    preloaded_hand_filename = args.hand
+    preloaded_hand_filename = args.hand[0]
+    filename_to_save = args.save[0]
+    print(args)
 
     # player1 = RandomPlayer(0)
     # player2 = RandomPlayer(1)
@@ -47,11 +57,11 @@ if __name__ == "__main__":
 
         if preloaded_hand_filename != '':
             game = PresetGame(
+                load_game_location=preloaded_hand_filename,
                 players=[player1, player2, player3],
                 starting_player_id=0,
                 bidding_style=bidding_style,
                 verbose=verbose,
-                load_game_location=preloaded_hand_filename
             )
 
         else:
@@ -60,6 +70,7 @@ if __name__ == "__main__":
                 starting_player_id=0,
                 bidding_style=bidding_style,
                 verbose=verbose,
+                save_deal_location=filename_to_save
             )
 
         game.play()
