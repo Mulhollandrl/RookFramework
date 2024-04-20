@@ -13,8 +13,9 @@ if __name__ == "__main__":
                 trump_color=trump_color,
                 players=[player1, player2, player3],
                 starting_player_id=0,
-                random_player_ids=[0, 1, 2],
+                random_player_ids=[],
                 human_player_ids=[],
+                greedy_player_ids=[0, 1, 2],
                 min_bid=40,
                 max_bid=120
             )
