@@ -92,7 +92,6 @@ class Player:
 
         return self._earning_potential
 
-
     def get_card_strength(self, card, trump_color=None, trick_color=None):
         if card.COLOR == 4:
             return 1
@@ -225,7 +224,6 @@ class Player:
             return 2
         else:
             return 0
-
 
     def win_trick(self, trick_pile) -> None:
         self.won_cards += trick_pile

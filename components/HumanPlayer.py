@@ -25,7 +25,6 @@ class HumanPlayer(Player):
         choice = input(f"The proposed bid is {bid}. Would you like to take it? (Y for yes; N for no) ")
         return choice.upper() == "Y"
 
-
     def get_trump_suit(self) -> int:
         print("As the winner of the bid, you get to set the trump color for this hand.")
         print("\t0 - Green\n\t1 - Black\n\t2 - Yellow\n\t3 - Red\n")

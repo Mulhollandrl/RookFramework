@@ -4,6 +4,7 @@ from components.Nest import Nest
 from components.Trick import Trick
 from utilities.GameLoader import GameLoader
 
+
 class Game:
     def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False, save_deal_location="") -> None:
         self.verbose = verbose
@@ -29,7 +30,6 @@ class Game:
 
         self.in_bidding_stage = True
 
-            
     def deal_cards(self) -> None:
         cards = []
         for color in range(4):
@@ -55,7 +55,6 @@ class Game:
             if current_player_id >= len(self.players):
                 current_player_id = 0
 
-
     def reset(self):
         self.nest = Nest([])
 
@@ -72,14 +71,8 @@ class Game:
 
         self.in_bidding_stage = True
 
-
     def play(self):
-        if self.bidding_style == "sealed":
-            self.bid_sealed_style()
-        elif self.bidding_style == "dutch":
-            self.bid_dutch_style()
-        else:
-            self.bid_english_style()
+        self.bid()
 
         while self.remaining_tricks > 0:
             self.play_trick()
@@ -87,6 +80,21 @@ class Game:
 
         self.end()
 
+    def bid(self):
+        if self.bidding_style == "sealed":
+            bidder, bid = self.bid_sealed_style()
+        elif self.bidding_style == "dutch":
+            bidder, bid = self.bid_dutch_style()
+        else:
+            bidder, bid = self.bid_english_style()
+
+        if self.verbose:
+            print(f"Player {bidder.ID} wins the bid at {bid}")
+
+        self.bid_winner = bidder
+        self.winning_bid = bid
+        self.trump_color = bidder.get_trump_suit()
+        self.starting_player_id = bidder.ID
 
     def bid_sealed_style(self):
         top_bidder = None
@@ -99,40 +107,36 @@ class Game:
             if self.verbose:
                 print(f"Player {player.ID} bids {bid}")
 
-        self.bid_winner = top_bidder
-        self.winning_bid = top_bid
-
-        if self.verbose:
-            print(f"Player {top_bidder.ID} wins the bid at {top_bid}")
-
+        return top_bidder, top_bid
 
     def bid_dutch_style(self):
         potential_bidders = self.get_ordered_players()
-        current_bid = self.max_bid
+        current_bid = self.max_bid + 5
+        bidder = None
 
         if self.verbose:
             print(f"Starting the bidding at {current_bid}")
 
-        while current_bid >= self.min_bid:
+        while current_bid >= self.min_bid and bidder is None:
+            current_bid -= 5
             bidder_index = 0
-            while self.bid_winner is None and bidder_index < len(potential_bidders):
-                bidder = potential_bidders[bidder_index]
-                if bidder.get_dutch_bid(current_bid):
+            while bidder is None and bidder_index < len(potential_bidders):
+                next_bidder = potential_bidders[bidder_index]
+                if next_bidder.get_dutch_bid(current_bid):
                     if self.verbose:
-                        print(f"Player {bidder.ID} took the bid at {current_bid}")
-                    self.bid_winner = bidder
-                    self.winning_bid = current_bid
+                        print(f"Player {next_bidder.ID} took the bid at {current_bid}")
+                    bidder = next_bidder
                 bidder_index += 1
             if self.verbose:
                 print(f"No players took the bid at {current_bid}.")
-            current_bid -= 5
 
-        if self.bid_winner is None:
-            self.bid_winner = potential_bidders[0]
-            self.winning_bid = self.min_bid
+        if bidder is None:
+            bidder = potential_bidders[0]
+            current_bid = self.min_bid
             if self.verbose:
-                print(f"No one bid. As the starting bidder, player {self.bid_winner} wins the bid at {self.winning_bid} by default.")
+                print(f"No one bid. As the starting bidder, player {bidder.ID} bids at {current_bid} by default.")
 
+        return bidder, current_bid
 
     def bid_english_style(self):
         bidding_players = self.get_ordered_players()
@@ -155,12 +159,7 @@ class Game:
                         print(f"Player {bidding_player.ID} passed on bidding {current_bid + 5}")
             bidder_index = 0
 
-        self.bid_winner = leading_bidder
-        self.winning_bid = current_bid
-
-        if self.verbose:
-            print(f"Player {self.bid_winner.ID} wins the bid at {self.winning_bid}")
-
+        return leading_bidder, current_bid
 
     def play_trick(self=False) -> None:
         trick = Trick(self.trump_color)
@@ -181,7 +180,6 @@ class Game:
 
         if self.verbose:
             print(f"Player {winner.ID} wins the trick with the {trick.get_best_card()}.")
-
 
     def end(self):
         for player in self.players:
@@ -212,10 +210,8 @@ class Game:
             for scorer in scoreboard:
                 print(f"\tPlayer {scorer.ID}: {scorer.score}")
 
-
     def get_winner(self):
         return max(self.players, key=lambda player: player.score)
-
 
     def get_ordered_players(self):
         ordered_players = []
@@ -228,8 +224,7 @@ class Game:
             if next_player_id == number_of_players:
                 next_player_id = 0
         return ordered_players
-    
-    
+
     # Saves a json representation of the dealt cards to be loaded in later
     def save_deal(self, save_deal_location):
         with open(save_deal_location, 'w') as fout:
