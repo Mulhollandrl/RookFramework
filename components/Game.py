@@ -6,11 +6,10 @@ from utilities.GameLoader import GameLoader
 
 
 class Game:
-    def __init__(self, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False, save_deal_location="") -> None:
+    def __init__(self, players, starting_player_id, min_bid=40, max_bid=120, verbose=False, save_deal_location="") -> None:
         self.verbose = verbose
         self.players = players
         self.starting_player_id = int(starting_player_id)
-        self.bidding_style = bidding_style
         self.min_bid = min_bid
         self.max_bid = max_bid
 
@@ -27,8 +26,6 @@ class Game:
             self.save_deal(save_deal_location)
 
         self.remaining_tricks = 52 // len(self.players)
-
-        self.in_bidding_stage = True
 
     def deal_cards(self) -> None:
         cards = []
@@ -62,17 +59,17 @@ class Game:
         self.winning_bid = None
         self.trump_color = None
 
-        self.deal_cards()
-
         self.remaining_tricks = 52 // len(self.players)
 
         for player in self.players:
             player.reset()
 
-        self.in_bidding_stage = True
+        self.deal_cards()
 
-    def play(self):
-        self.bid()
+    def play(self, bidding_style="english"):
+        self.reset()
+
+        self.bid(bidding_style)
 
         while self.remaining_tricks > 0:
             self.play_trick()
@@ -80,10 +77,10 @@ class Game:
 
         self.end()
 
-    def bid(self):
-        if self.bidding_style == "sealed":
+    def bid(self, bidding_style):
+        if bidding_style == "sealed":
             bidder, bid = self.bid_sealed_style()
-        elif self.bidding_style == "dutch":
+        elif bidding_style == "dutch":
             bidder, bid = self.bid_dutch_style()
         else:
             bidder, bid = self.bid_english_style()
@@ -95,6 +92,7 @@ class Game:
         self.winning_bid = bid
         self.trump_color = bidder.get_trump_suit()
         self.starting_player_id = bidder.ID
+
 
     def bid_sealed_style(self):
         top_bidder = None
@@ -161,7 +159,7 @@ class Game:
 
         return leading_bidder, current_bid
 
-    def play_trick(self=False) -> None:
+    def play_trick(self) -> None:
         trick = Trick(self.trump_color)
         for player in self.get_ordered_players():
             if self.verbose:

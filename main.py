@@ -28,23 +28,36 @@ if __name__ == "__main__":
     filename_to_save = args.save[0]
     print(args)
 
-    # player1 = RandomPlayer(0)
-    # player2 = RandomPlayer(1)
-    # player3 = RandomPlayer(2)
+    verbose = input("Would you like to see detailed output about the events of the game? (Y for yes; N for no) ").upper() == "Y"
+
     player1 = StrategicPlayer(0)
     player2 = StrategicPlayer(1)
     player3 = StrategicPlayer(2)
 
+    if preloaded_hand_filename != '':
+        game = PresetGame(
+            load_game_location=preloaded_hand_filename,
+            players=[player1, player2, player3],
+            starting_player_id=0,
+            verbose=verbose,
+        )
+
+    else:
+        game = Game(
+            players=[player1, player2, player3],
+            starting_player_id=0,
+            verbose=verbose,
+            save_deal_location=filename_to_save
+        )
+
     play_again = True
+    repeat = False
 
     while play_again:
         player1.reset()
         player2.reset()
         player3.reset()
-        bidding_style = input("This game offers three different bidding styles.\n\t0 - English\n\t1 - Sealed\n\t2 - Dutch\nWhich bidding style would you like to use? (enter 0, 1, or 2)\n")
-        verbose_response = input("Would you like the game to tell you what is happening? (Y for yes; N for no) ")
-
-        verbose = verbose_response.upper() == "Y"
+        bidding_style = input("Choose one of the following bidding types:\n\t0 - English\n\t1 - Sealed\n\t2 - Dutch\nWhich bidding style would you like to use? (enter 0, 1, or 2)\n")
 
         if bidding_style == "1":
             bidding_style = "sealed"
@@ -53,28 +66,24 @@ if __name__ == "__main__":
         else:
             bidding_style = "english"
 
-        print(f"Starting a game with {bidding_style} bidding, with 3 strategic players playing. The game will {'' if verbose else 'not '} tell you what is happening.")
+        print(f"Playing with {bidding_style} bidding. 3 strategic players are participating. The game will {'' if verbose else 'not '}tell you what is happening.")
+        game.play(bidding_style)
 
         if preloaded_hand_filename != '':
-            game = PresetGame(
-                load_game_location=preloaded_hand_filename,
-                players=[player1, player2, player3],
-                starting_player_id=0,
-                bidding_style=bidding_style,
-                verbose=verbose,
-            )
+            repeat = input("Would you like to play again? (Y for yes; N for no)").upper() == "Y"
 
-        else:
-            game = Game(
-                players=[player1, player2, player3],
-                starting_player_id=0,
-                bidding_style=bidding_style,
-                verbose=verbose,
-                save_deal_location=filename_to_save
-            )
+            if repeat:
+                play_again = True
+            else:
+                game = Game(
+                    players=[player1, player2, player3],
+                    starting_player_id=0,
+                    verbose=verbose,
+                    save_deal_location=filename_to_save
+                )
+                preloaded_hand_filename = ''
 
-        game.play()
-
-        play_again = input("Would you like to start a new game? (Y for yes; N for no)").upper() == "Y"
+        if not repeat:
+            play_again = input("Would you like to start a new game? (Y for yes; N for no)").upper() == "Y"
 
     print("Goodbye!")

@@ -11,11 +11,11 @@ from utilities.GameLoader import GameLoader
 '''
 class PresetGame(Game):
 
-    def __init__(self, load_game_location, players, starting_player_id, bidding_style="english", min_bid=40, max_bid=120, verbose=False):
+    def __init__(self, load_game_location, players, starting_player_id, min_bid=40, max_bid=120, verbose=False):
         self.load_game_location = load_game_location
         
         # Don't allow for saving from a loaded game by setting save_deal_location to the blank string
-        super().__init__(players, starting_player_id, bidding_style, min_bid, max_bid, verbose, save_deal_location="")
+        super().__init__(players, starting_player_id, min_bid, max_bid, verbose, save_deal_location="")
 
 
     def deal_cards(self) -> None:
@@ -45,11 +45,9 @@ class PresetGame(Game):
         self.winning_bid = None
         self.trump_color = None
 
-        self.deal_cards()
-
-        self.remaining_tricks = 52 // len(self.players)
-
         for player in self.players:
             player.reset()
 
-        self.in_bidding_stage = True
+        self.deal_cards()
+
+        self.remaining_tricks = 52 // len(self.players)
