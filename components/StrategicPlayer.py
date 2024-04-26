@@ -11,7 +11,11 @@ class StrategicPlayer(Player):
         return next_bid <= self.estimate_hand_potential()
 
     def get_sealed_bid(self, min_bid, max_bid) -> int:
-        return self.estimate_hand_potential()
+        potential = self.estimate_hand_potential()
+        bid = (potential // 5) * potential
+        bid = min(max_bid, bid)
+        bid = max(min_bid, bid)
+        return bid
 
     def get_dutch_bid(self, bid) -> bool:
         return bid <= self.estimate_hand_potential()

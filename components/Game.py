@@ -166,8 +166,8 @@ class Game:
             print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) leads the bidding with {current_bid}")
 
         bidder_index = 1
-        while len(bidding_players) > 1:
-            while bidder_index < len(bidding_players):
+        while len(bidding_players) > 1 :
+            while bidder_index < len(bidding_players) and len(bidding_players) > 1:
                 bidding_player = bidding_players[bidder_index]
                 if bidding_player.get_english_bid(current_bid + 5):
                     current_bid += 5
