@@ -34,6 +34,13 @@ class Game:
 
         self.remaining_tricks = 52 // len(self.players)
 
+        self.step_bidding = {
+            "active_bidders": self.get_ordered_players(),
+            "leading_bidder": starting_player_id,
+            "bid_amount": min_bid
+        }
+        self.ai_trick_score = 0
+
     def deal_cards(self) -> None:
         if self.hands is not None and len(self.hands) > 0:
             self.nest.set_cards(self.hands[0])
@@ -78,6 +85,7 @@ class Game:
         self.trump_color = None
 
         self.remaining_tricks = 52 // len(self.players)
+        self.active_trick = None
 
         for player in self.players:
             player.reset()
@@ -183,10 +191,47 @@ class Game:
 
         return leading_bidder, current_bid
 
-    def play_trick(self) -> None:
+    def bid_english_step(self, ai_bid) -> bool:
+        remaining_bidders = len(self.step_bidding["active_bidders"])
+        bidder_index = 1
+        leading_bidder = self.step_bidding["leading_bidder"]
+        bid_amount = self.step_bidding["bid_amount"]
+        while remaining_bidders > 0 and bidder_index < len(self.step_bidding["active_bidders"]):
+            bidder = self.step_bidding["active_bidders"][bidder_index]
+            if (bidder.type == "AI" and ai_bid == 1) or bidder.get_english_bid(bid_amount + 5):
+                leading_bidder = bidder
+                bid_amount += 5
+                bidder_index += 1
+                if self.verbose:
+                    print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) bid {bid_amount}")
+            else:
+                if self.verbose:
+                    print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
+                self.step_bidding["active_bidders"].pop(bidder_index)
+
+            if bidder_index == len(self.step_bidding["active_bidders"]):
+                bidder_index = 0
+
+            remaining_bidders -= 1
+
+        if len(self.step_bidding["active_bidders"]) == 1:
+            self.bid_winner = leading_bidder
+            self.winning_bid = bid_amount
+            print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) wins the bid at {bid_amount}")
+            return True
+        else:
+            self.step_bidding["leading_bidder"] = leading_bidder
+            self.step_bidding["bid_amount"] = bid_amount
+            return False
+
+    def play_trick(self, ai_card=None) -> None:
         trick = Trick(self.trump_color)
         for player in self.get_ordered_players():
-            played_card = player.play_card(trick)
+            if player.type == "AI":
+                trick.play_card(ai_card, player.ID)
+                played_card = ai_card
+            else:
+                played_card = player.play_card(trick)
             if self.verbose:
                 print(f"Player {player.ID} ({player.report_type()}) played {played_card}")
                 if player.ID == self.starting_player_id:
@@ -195,6 +240,7 @@ class Game:
         winner = self.players[trick.get_winner_id()]
         winner.win_trick(trick.played_cards)
         self.starting_player_id = winner.ID
+        self.ai_trick_score = trick.score if trick.get_best_card() is ai_card else -trick.score
 
         if self.verbose:
             print(f"Player {winner.ID} ({winner.report_type()}) wins the trick with the {trick.get_best_card()}.")

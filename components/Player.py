@@ -23,6 +23,9 @@ class Player:
         self.best_color = None
         self._earning_potential = None
 
+        self.waiting = None
+        self.result = None
+
     def estimate_hand_potential(self):
         if self._earning_potential is None:
             sorted_hand = {}

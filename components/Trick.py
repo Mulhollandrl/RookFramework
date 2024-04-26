@@ -46,3 +46,9 @@ class Trick:
     def get_winner_id(self) -> int:
         best_card_index = self.played_cards.index(self.get_best_card())
         return self.played_player_ids[best_card_index]
+
+    def get_pile_size(self):
+        return len(self.played_cards)
+
+    def is_finished(self):
+        return len(self.played_cards) == self.card_count
