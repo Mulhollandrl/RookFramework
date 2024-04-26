@@ -36,7 +36,7 @@ class Game:
 
         self.step_bidding = {
             "active_bidders": self.get_ordered_players(),
-            "leading_bidder": starting_player_id,
+            "leading_bidder": self.players[starting_player_id],
             "bid_amount": min_bid
         }
 
