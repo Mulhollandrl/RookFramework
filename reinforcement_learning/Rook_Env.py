@@ -50,8 +50,9 @@ class RookEnv(gym.Env):
         for card in first_priority_cards if first_priority_cards else second_priority_cards if second_priority_cards else all_cards:
             obs.append(card.get_number())
 
-        for card in self.game.trick_pile.played_cards:
-            obs.append(card.get_number())
+        if self.game.active_trick is not None:
+            for card in self.game.active_trick.played_cards:
+                obs.append(card.get_number())
 
         obs = np.array(obs)
         
@@ -67,7 +68,7 @@ class RookEnv(gym.Env):
         else:
             move_success = self.game.play_trick(ai_card=action)
         
-        done = not self.game.game_going
+        done = not self.game.remaining_tricks == 0
         reward = self.calculate_reward()
         obs = self.get_observation()
         return obs, reward, done, False, {}

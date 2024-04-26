@@ -199,7 +199,18 @@ class Game:
         bid_amount = self.step_bidding["bid_amount"]
         while remaining_bidders > 0 and bidder_index < len(self.step_bidding["active_bidders"]):
             bidder = self.step_bidding["active_bidders"][bidder_index]
-            if (bidder.type == "AI" and ai_bid == 1) or bidder.get_english_bid(bid_amount + 5):
+            if bidder.type == "AI":
+                if ai_bid == 1:
+                    leading_bidder = bidder
+                    bid_amount += 5
+                    bidder_index += 1
+                    if self.verbose:
+                        print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) bid {bid_amount}")
+                else:
+                    if self.verbose:
+                        print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
+                    self.step_bidding["active_bidders"].pop(bidder_index)
+            elif bidder.get_english_bid(bid_amount + 5):
                 leading_bidder = bidder
                 bid_amount += 5
                 bidder_index += 1
