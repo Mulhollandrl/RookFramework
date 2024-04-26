@@ -1,3 +1,5 @@
+import random
+
 from components import Card
 from components.Player import Player
 
@@ -8,17 +10,31 @@ class StrategicPlayer(Player):
         self.type = "strategic"
 
     def get_english_bid(self, next_bid) -> bool:
-        return next_bid <= self.estimate_hand_potential()
+        estimate = self.estimate_hand_potential()
+        if next_bid > estimate:
+            return False
+        elif next_bid > estimate * 3 / 4:
+            return random.choice([True, False])
+        else:
+            return True
 
     def get_sealed_bid(self, min_bid, max_bid) -> int:
         potential = self.estimate_hand_potential()
-        bid = (potential // 5) * potential
-        bid = min(max_bid, bid)
+        bid = min(max_bid, potential)
         bid = max(min_bid, bid)
+        bid = random.randint(min_bid, bid)
+        bid = (bid // 5) * 5
         return bid
 
+
     def get_dutch_bid(self, bid) -> bool:
-        return bid <= self.estimate_hand_potential()
+        estimate = self.estimate_hand_potential()
+        if bid > estimate:
+            return False
+        elif bid > estimate * 3 / 4:
+            return random.choice([True, False])
+        else:
+            return True
 
     def get_trump_suit(self) -> int:
         if self.best_color is None:
