@@ -20,4 +20,5 @@ if __name__ == "__main__":
             loop_menu = False
         else:
             menu_action()
+
     print("Goodbye!")

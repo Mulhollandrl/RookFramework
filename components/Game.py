@@ -79,7 +79,6 @@ class Game:
 
     def reset(self):
         self.nest = Nest([])
-
         self.bid_winner = None
         self.winning_bid = None
         self.trump_color = None
