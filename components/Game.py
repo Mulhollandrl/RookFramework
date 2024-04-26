@@ -39,6 +39,8 @@ class Game:
             "leading_bidder": starting_player_id,
             "bid_amount": min_bid
         }
+
+        self.active_trick = None
         self.ai_trick_score = 0
 
     def deal_cards(self) -> None:
@@ -225,6 +227,7 @@ class Game:
 
     def play_trick(self, ai_card=None) -> None:
         trick = Trick(self.trump_color)
+        self.active_trick = trick
         for player in self.get_ordered_players():
             if player.type == "AI":
                 trick.play_card(ai_card, player.ID)

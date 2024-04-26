@@ -38,8 +38,12 @@ class RookEnv(gym.Env):
 
         obs.append(self.game.current_bid)
         all_cards = self.ai_player.playable_cards
-        
-        first_priority_cards = [card for card in all_cards if card.COLOR == self.game.current_color]
+
+        if self.game.active_trick is not None:
+            first_priority_cards = [card for card in all_cards if card.COLOR == self.game.active_trick.trick_color]
+        else:
+            first_priority_cards = []
+
         second_priority_cards = [card for card in all_cards if card.COLOR == self.game.trump_color]
 
         for card in first_priority_cards if first_priority_cards else second_priority_cards if second_priority_cards else all_cards:
