@@ -13,10 +13,12 @@ from enums.COLORS import REVERSE_COLORS
 class Player:
     def __init__(self, player_id) -> None:
         self.ID = player_id
+        self.type = "basic"
 
         self.playable_cards = []
         self.won_cards = []
 
+        self.earned_points = None
         self.score = None
         self.best_color = None
         self._earning_potential = None
@@ -231,6 +233,9 @@ class Player:
     def deal_card(self, newly_dealt_card) -> None:
         self.playable_cards.append(newly_dealt_card)
 
+    def deal_hand(self, hand):
+        self.playable_cards = hand
+
     def get_won_cards(self) -> list[Card]:
         return self.won_cards
     
@@ -238,13 +243,17 @@ class Player:
         self.won_cards = new_won_cards
 
     def score_game(self) -> None:
-        if self.score is None:
-            self.score = 0
+        if self.earned_points is None or self.score is None:
+            self.earned_points = 0
             for card in self.won_cards:
-                self.score += card.POINTS
+                self.earned_points += card.POINTS
+            self.score = self.earned_points
 
     def reset(self) -> None:
         self.playable_cards = []
         self.won_cards = []
         self.score = None
         self._earning_potential = None
+
+    def report_type(self) -> str:
+        return f"{self.type} player"

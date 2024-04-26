@@ -5,6 +5,7 @@ from components.Player import Player
 class StrategicPlayer(Player):
     def __init__(self, player_id):
         super().__init__(player_id)
+        self.type = "strategic"
 
     def get_english_bid(self, next_bid) -> bool:
         return next_bid <= self.estimate_hand_potential()

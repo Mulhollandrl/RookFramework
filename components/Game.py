@@ -2,16 +2,18 @@ import random
 from components.Card import Card
 from components.Nest import Nest
 from components.Trick import Trick
+from enums.COLORS import REVERSE_COLORS
 from utilities.GameLoader import GameLoader
 
 
 class Game:
-    def __init__(self, players, starting_player_id, min_bid=40, max_bid=120, verbose=False, save_deal_location="") -> None:
+    def __init__(self, players, starting_player_id, min_bid=40, max_bid=120, verbose=False, reuse_deal=False, save_deal_location="") -> None:
         self.verbose = verbose
         self.players = players
         self.starting_player_id = int(starting_player_id)
         self.min_bid = min_bid
         self.max_bid = max_bid
+        self.hands = None
 
         self.nest = Nest([])
 
@@ -19,7 +21,12 @@ class Game:
         self.winning_bid = None
         self.trump_color = None
 
-        self.deal_cards()
+        if reuse_deal or save_deal_location != "":
+            self.deal_cards()
+
+        if reuse_deal:
+            self.hands = [player.playable_cards for player in self.players]
+            self.hands.insert(0, self.nest.get_cards())
 
         # If there's a filepath to save the dealt hands to, then save them there
         if save_deal_location != "":
@@ -28,29 +35,40 @@ class Game:
         self.remaining_tricks = 52 // len(self.players)
 
     def deal_cards(self) -> None:
-        cards = []
-        for color in range(4):
-            for number in range(1, 15):
-                cards.append(Card(number, color))
+        if self.hands is not None and len(self.hands) > 0:
+            self.nest.set_cards(self.hands[0])
 
-        cards.append(Card(20, 4))
+            current_player_id = self.starting_player_id
+            for i in range(1, len(self.hands)):
+                self.players[current_player_id].deal_hand(self.hands[i])
+                current_player_id += 1
+                if current_player_id == len(self.players):
+                    current_player_id = 0
+        else:
+            cards = []
+            for color in range(4):
+                for number in range(1, 15):
+                    cards.append(Card(number, color))
 
-        random.shuffle(cards)
-        self.nest.set_cards(cards[:6])
-        del cards[:6]
-        
-        current_player_id = 0
-        
-        while cards:
-            card = cards.pop()
+            cards.append(Card(20, 4))
 
-            player = self.players[current_player_id]
-            
-            player.deal_card(card)
-            current_player_id += 1
-            
-            if current_player_id >= len(self.players):
-                current_player_id = 0
+            random.shuffle(cards)
+
+            self.nest.set_cards(cards[:6])
+            del cards[:6]
+
+            current_player_id = self.starting_player_id
+
+            while cards:
+                card = cards.pop()
+
+                player = self.players[current_player_id]
+
+                player.deal_card(card)
+                current_player_id += 1
+
+                if current_player_id >= len(self.players):
+                    current_player_id = 0
 
     def reset(self):
         self.nest = Nest([])
@@ -85,13 +103,15 @@ class Game:
         else:
             bidder, bid = self.bid_english_style()
 
-        if self.verbose:
-            print(f"Player {bidder.ID} wins the bid at {bid}")
+        print(f"Player {bidder.ID} ({bidder.report_type()}) wins the bid at {bid}")
 
         self.bid_winner = bidder
         self.winning_bid = bid
-        self.trump_color = bidder.get_trump_suit()
+        self.trump_color = int(bidder.get_trump_suit())
         self.starting_player_id = bidder.ID
+
+        if self.verbose:
+            print(f"Player {bidder.ID} ({bidder.report_type()}) chose {REVERSE_COLORS[self.trump_color]} as the trump suit.")
 
 
     def bid_sealed_style(self):
@@ -103,7 +123,7 @@ class Game:
                 top_bid = bid
                 top_bidder = player
             if self.verbose:
-                print(f"Player {player.ID} bids {bid}")
+                print(f"Player {player.ID} ({player.report_type()}) bids {bid}")
 
         return top_bidder, top_bid
 
@@ -122,7 +142,7 @@ class Game:
                 next_bidder = potential_bidders[bidder_index]
                 if next_bidder.get_dutch_bid(current_bid):
                     if self.verbose:
-                        print(f"Player {next_bidder.ID} took the bid at {current_bid}")
+                        print(f"Player {next_bidder.ID} ({next_bidder.report_type()}) took the bid at {current_bid}")
                     bidder = next_bidder
                 bidder_index += 1
             if self.verbose:
@@ -132,7 +152,7 @@ class Game:
             bidder = potential_bidders[0]
             current_bid = self.min_bid
             if self.verbose:
-                print(f"No one bid. As the starting bidder, player {bidder.ID} bids at {current_bid} by default.")
+                print(f"No one bid. As the starting bidder, player {bidder.ID} ({bidder.report_type()}) bids at {current_bid} by default.")
 
         return bidder, current_bid
 
@@ -141,6 +161,10 @@ class Game:
 
         current_bid = self.min_bid
         leading_bidder = bidding_players[0]
+
+        if self.verbose:
+            print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) leads the bidding with {current_bid}")
+
         bidder_index = 1
         while len(bidding_players) > 1:
             while bidder_index < len(bidding_players):
@@ -150,11 +174,11 @@ class Game:
                     bidder_index += 1
                     leading_bidder = bidding_player
                     if self.verbose:
-                        print(f"Player {bidding_player.ID} bid {current_bid}")
+                        print(f"Player {bidding_player.ID} ({bidding_player.report_type()}) bid {current_bid}")
                 else:
                     bidding_players.pop(bidder_index)
                     if self.verbose:
-                        print(f"Player {bidding_player.ID} passed on bidding {current_bid + 5}")
+                        print(f"Player {bidding_player.ID} ({bidding_player.report_type()}) passed on bidding {current_bid + 5}")
             bidder_index = 0
 
         return leading_bidder, current_bid
@@ -162,22 +186,18 @@ class Game:
     def play_trick(self) -> None:
         trick = Trick(self.trump_color)
         for player in self.get_ordered_players():
-            if self.verbose:
-                print(f"Player {player.ID} is now playing a card")
-
             played_card = player.play_card(trick)
-
             if self.verbose:
-                print(f"Player {player.ID} played {played_card}")
+                print(f"Player {player.ID} ({player.report_type()}) played {played_card}")
                 if player.ID == self.starting_player_id:
-                    print(f"The trick color is {trick.trick_color}")
+                    print(f"The trick color is {REVERSE_COLORS[trick.trick_color]}")
 
         winner = self.players[trick.get_winner_id()]
         winner.win_trick(trick.played_cards)
         self.starting_player_id = winner.ID
 
         if self.verbose:
-            print(f"Player {winner.ID} wins the trick with the {trick.get_best_card()}.")
+            print(f"Player {winner.ID} ({winner.report_type()}) wins the trick with the {trick.get_best_card()}.")
 
     def end(self):
         for player in self.players:
@@ -185,28 +205,25 @@ class Game:
 
         bid_unfulfilled = self.bid_winner.score < self.winning_bid
 
-
-        if self.verbose:
-            print(f"The game has ended!")
-            if bid_unfulfilled:
-                print(f"Player {self.bid_winner.ID} failed to fulfill their bid, earning only {self.bid_winner.score} of the expected {self.winning_bid} points, so {self.winning_bid} points were deducted from their score.")
-            else:
-                print(f"Player {self.bid_winner.ID} fulfilled their bid of {self.winning_bid} with {self.bid_winner.score}. No points were deducted from their score.")
+        if bid_unfulfilled:
+            print(f"Player {self.bid_winner.ID} ({self.bid_winner.report_type()}) failed to fulfill their bid, earning only {self.bid_winner.score} of the expected {self.winning_bid} points, so {self.winning_bid} points were deducted from their score.")
+        else:
+            print(f"Player {self.bid_winner.ID} ({self.bid_winner.report_type()}) fulfilled their bid of {self.winning_bid} with {self.bid_winner.score}. No points were deducted from their score.")
 
         if bid_unfulfilled:
             self.bid_winner.score -= self.winning_bid
 
         winner = self.get_winner()
 
-        if self.verbose:
-            print(f"Player {winner.ID} has won with {winner.score} points!")
+        print(f"Player {winner.ID} ({winner.report_type()}) has won with {winner.score} points!")
 
+        if self.verbose:
             scoreboard = [player for player in self.players]
             scoreboard.sort(key=lambda player: player.score, reverse=True)
 
             print("Scoreboard:")
             for scorer in scoreboard:
-                print(f"\tPlayer {scorer.ID}: {scorer.score}")
+                print(f"\tPlayer {scorer.ID} ({scorer.report_type()}): {scorer.score}")
 
     def get_winner(self):
         return max(self.players, key=lambda player: player.score)
@@ -223,7 +240,12 @@ class Game:
                 next_player_id = 0
         return ordered_players
 
+    def get_bidding_report(self):
+        return self.winning_bid, self.bid_winner.earned_points >= self.winning_bid, self.bid_winner is self.get_winner()
+
     # Saves a json representation of the dealt cards to be loaded in later
     def save_deal(self, save_deal_location):
+        self.hands = [player.playable_cards for player in self.players]
+        self.hands.insert(0, self.nest.get_cards())
         with open(save_deal_location, 'w') as fout:
             GameLoader.save_hands(self.players, self.nest, fout)
