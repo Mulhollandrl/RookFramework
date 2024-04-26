@@ -21,6 +21,9 @@ def run_ai():
                 min_bid=40,
                 max_bid=120
                 )
+
+    game.deal_cards()
+    
     env = RookEnv(game, 0, verbose)
 
     obs, _ = env.reset()
