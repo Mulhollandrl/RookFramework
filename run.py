@@ -10,7 +10,7 @@ from reinforcement_learning.Rook_Env import RookEnv
 # model = A2C.load("reinforcement_learning/tmp/best_model_A2C.zip")
 model = PPO.load("reinforcement_learning/tmp/best_model_PPO.zip")
 
-if __name__ == "__main__":
+def run_ai():
     verbose = True
 
     players = [AIPlayer(0), GreedyPlayer(1), GreedyPlayer(2)]
@@ -22,14 +22,18 @@ if __name__ == "__main__":
                 max_bid=120
                 )
     env = RookEnv(game, 0, verbose)
-    
+
     obs, _ = env.reset()
     done = False
-    
+
     while not done:
         action, state = model.predict(obs)
         obs, reward, done, info, _ = env.step(action)
         env.render()
-        
+
         if done:
             obs, _ = env.reset()
+
+
+if __name__ == "__main__":
+    run_ai()

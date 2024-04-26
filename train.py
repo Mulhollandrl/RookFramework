@@ -60,13 +60,13 @@ class SaveOnBestTrainingRewardCallback(BaseCallback):
 log_dir = "reinforcement_learning/tmp/"
 os.makedirs(log_dir, exist_ok=True)
 
-if __name__ == "__main__":
+def train_ai():
     env_id = "Rook"
-    
+
     verbose = False
-    
+
     players = [AIPlayer(0), GreedyPlayer(1), GreedyPlayer(2)]
-    
+
     game = Game(
                 players=players,
                 starting_player_id=0,
@@ -78,8 +78,11 @@ if __name__ == "__main__":
     # model = A2C("MlpPolicy", env, verbose=1, tensorboard_log="./reinforcement_learning/board/")
     model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./reinforcement_learning/board/", learning_rate=0.00003)
     callback = SaveOnBestTrainingRewardCallback(check_freq=1000, log_dir=log_dir)
-    
+
     print("------------- Start Learning -------------")
     model.learn(total_timesteps=2000000, callback=callback)
     model.save(env_id)
     print("------------- Done Learning -------------")
+
+if __name__ == "__main__":
+    train_ai()
