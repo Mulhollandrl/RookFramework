@@ -12,8 +12,8 @@ import os
 
 from components.AIPlayer import AIPlayer
 from components.Game import Game
-from components.GreedyPlayer import GreedyPlayer
 from components.Player import Player
+from components.StrategicPlayer import StrategicPlayer
 from reinforcement_learning.Rook_Env import RookEnv
 
 
@@ -65,7 +65,7 @@ def train_ai():
 
     verbose = False
 
-    players = [AIPlayer(0), GreedyPlayer(1), GreedyPlayer(2)]
+    players = [AIPlayer(0), StrategicPlayer(1), StrategicPlayer(2)]
 
     game = Game(
                 players=players,

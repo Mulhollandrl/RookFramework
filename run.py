@@ -3,8 +3,8 @@ from stable_baselines3 import PPO, A2C
 
 from components.AIPlayer import AIPlayer
 from components.Game import Game
-from components.GreedyPlayer import GreedyPlayer
 from components.Player import Player
+from components.StrategicPlayer import StrategicPlayer
 from reinforcement_learning.Rook_Env import RookEnv
 
 # model = A2C.load("reinforcement_learning/tmp/best_model_A2C.zip")
@@ -13,7 +13,7 @@ model = PPO.load("reinforcement_learning/tmp/best_model_PPO.zip")
 def run_ai():
     verbose = True
 
-    players = [AIPlayer(0), GreedyPlayer(1), GreedyPlayer(2)]
+    players = [AIPlayer(0), StrategicPlayer(1), StrategicPlayer(2)]
 
     game = Game(
                 players=players,
@@ -23,7 +23,7 @@ def run_ai():
                 )
 
     game.deal_cards()
-    
+
     env = RookEnv(game, 0, verbose)
 
     obs, _ = env.reset()
