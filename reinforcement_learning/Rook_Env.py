@@ -36,15 +36,16 @@ class RookEnv(gym.Env):
     def get_observation(self):
         obs = []
 
-        obs.append(self.game.current_bid)
+        obs.append(self.game.min_bid)
+        obs.append(self.game.max_bid)
         all_cards = self.ai_player.playable_cards
 
         if self.game.active_trick is not None:
-            first_priority_cards = [card for card in all_cards if card.COLOR == self.game.active_trick.trick_color]
+            first_priority_cards = [card for card in all_cards if card.get_color() == self.game.active_trick.trick_color]
         else:
             first_priority_cards = []
 
-        second_priority_cards = [card for card in all_cards if card.COLOR == self.game.trump_color]
+        second_priority_cards = [card for card in all_cards if card.get_color() == self.game.trump_color]
 
         for card in first_priority_cards if first_priority_cards else second_priority_cards if second_priority_cards else all_cards:
             obs.append(card.get_number())

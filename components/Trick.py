@@ -19,10 +19,10 @@ class Trick:
 
     def play_card(self, card, player_id) -> None:
         if self.trick_color is None:
-            if card.COLOR == 4:
+            if card.get_color() == 4:
                 self.trick_color = self.trump_color
             else:
-                self.trick_color = card.COLOR
+                self.trick_color = card.get_color()
 
         self.played_cards.append(card)
         self.played_player_ids.append(player_id)
@@ -32,7 +32,7 @@ class Trick:
         if len(self.played_cards) == 0:
             return None
 
-        trump_cards = [card for card in self.played_cards if card.get_color() == self.trump_color or card.COLOR == 4]
+        trump_cards = [card for card in self.played_cards if card.get_color() == self.trump_color or card.get_color() == 4]
         
         suit_cards = [card for card in self.played_cards if card.get_color() == self.trick_color]
         

@@ -13,9 +13,9 @@ class GreedyPlayer(Player):
     def get_english_bid(self, next_bid) -> bool:
         all_cards = self.playable_cards
 
-        rook_card = [card for card in all_cards if card.ROOK]
-        ten_point_cards = [card for card in all_cards if card.NUMBER == 10 or card.NUMBER == 14]
-        five_point_cards = [card for card in all_cards if card.NUMBER == 5]
+        rook_card = [card for card in all_cards if card.get_rook()]
+        ten_point_cards = [card for card in all_cards if card.get_number() == 10 or card.get_number() == 14]
+        five_point_cards = [card for card in all_cards if card.get_number() == 5]
 
         max_bid = (20 * len(rook_card)) + (10 * len(ten_point_cards)) + (5 * len(five_point_cards))
 
@@ -24,9 +24,9 @@ class GreedyPlayer(Player):
     def get_sealed_bid(self, min_bid, max_bid) -> int:
         all_cards = self.playable_cards
 
-        rook_card = [card for card in all_cards if card.ROOK]
-        ten_point_cards = [card for card in all_cards if card.NUMBER == 10 or card.NUMBER == 14]
-        five_point_cards = [card for card in all_cards if card.NUMBER == 5]
+        rook_card = [card for card in all_cards if card.get_rook()]
+        ten_point_cards = [card for card in all_cards if card.get_number() == 10 or card.get_number() == 14]
+        five_point_cards = [card for card in all_cards if card.get_number() == 5]
 
         bid = (20 * len(rook_card)) + (10 * len(ten_point_cards)) + (5 * len(five_point_cards))
         bid = (bid // 5) * bid
@@ -41,9 +41,9 @@ class GreedyPlayer(Player):
     def get_dutch_bid(self, bid) -> bool:
         all_cards = self.playable_cards
 
-        rook_card = [card for card in all_cards if card.ROOK]
-        ten_point_cards = [card for card in all_cards if card.NUMBER == 10 or card.NUMBER == 14]
-        five_point_cards = [card for card in all_cards if card.NUMBER == 5]
+        rook_card = [card for card in all_cards if card.get_rook()]
+        ten_point_cards = [card for card in all_cards if card.get_number() == 10 or card.get_number() == 14]
+        five_point_cards = [card for card in all_cards if card.get_number() == 5]
 
         max_bid = (20 * len(rook_card)) + (10 * len(ten_point_cards)) + (5 * len(five_point_cards))
 
@@ -53,20 +53,20 @@ class GreedyPlayer(Player):
         all_cards = self.playable_cards
         card_color_amounts = []
 
-        card_color_amounts.append(len([card for card in all_cards if card.COLOR == COLORS["green"]]))
-        card_color_amounts.append(len([card for card in all_cards if card.COLOR == COLORS["black"]]))
-        card_color_amounts.append(len([card for card in all_cards if card.COLOR == COLORS["yellow"]]))
-        card_color_amounts.append(len([card for card in all_cards if card.COLOR == COLORS["red"]]))
+        card_color_amounts.append(len([card for card in all_cards if card.get_color() == COLORS["green"]]))
+        card_color_amounts.append(len([card for card in all_cards if card.get_color() == COLORS["black"]]))
+        card_color_amounts.append(len([card for card in all_cards if card.get_color() == COLORS["yellow"]]))
+        card_color_amounts.append(len([card for card in all_cards if card.get_color() == COLORS["red"]]))
 
         return card_color_amounts.index(max(card_color_amounts))
 
     def exchange_with_nest(self, nest) -> None:
         nest_cards = nest.get_cards()
 
-        nest_high_point_cards = [card for card in nest_cards if card.NUMBER == 10 or card.NUMBER == 14 or card.ROOK]
+        nest_high_point_cards = [card for card in nest_cards if card.get_number() == 10 or card.get_number() == 14 or card.get_rook()]
 
         for card_to_swap in nest_high_point_cards:
-            player_cards = sorted(self.playable_cards, key=lambda card: card.NUMBER)
+            player_cards = sorted(self.playable_cards, key=lambda card: card.get_number())
             player_card = player_cards[0]
 
             del self.playable_cards[self.playable_cards.index(player_card)]
@@ -90,15 +90,15 @@ class GreedyPlayer(Player):
         cards = self.playable_cards
 
         if cards:
-            first_priority_cards = [card for card in cards if card.COLOR == trick.trick_color]
-            second_priority_cards = [card for card in cards if card.COLOR == trick.trump_color or card.ROOK]
+            first_priority_cards = [card for card in cards if card.get_color() == trick.trick_color]
+            second_priority_cards = [card for card in cards if card.get_color() == trick.trump_color or card.get_rook()]
 
             if first_priority_cards:
-                card_to_play = sorted(first_priority_cards, key=lambda card: card.NUMBER)[-1]
+                card_to_play = sorted(first_priority_cards, key=lambda card: card.get_number())[-1]
             elif second_priority_cards:
-                card_to_play = sorted(second_priority_cards, key=lambda card: card.NUMBER)[-1]
+                card_to_play = sorted(second_priority_cards, key=lambda card: card.get_number())[-1]
             else:
-                card_to_play = sorted(cards, key=lambda card: card.NUMBER)[-1]
+                card_to_play = sorted(cards, key=lambda card: card.get_number())[-1]
 
             self.playable_cards = [card for card in cards if not card == card_to_play]
 

@@ -74,7 +74,7 @@ def train_ai():
                 max_bid=120
                 )
 
-    env = VecMonitor(SubprocVecEnv([lambda: RookEnv(game, 0, verbose)]), "reinforcement_learning/tmp/TestMonitor")
+    env = VecMonitor(SubprocVecEnv([lambda: RookEnv(game, players[0], verbose)]), "reinforcement_learning/tmp/TestMonitor")
     # model = A2C("MlpPolicy", env, verbose=1, tensorboard_log="./reinforcement_learning/board/")
     model = PPO("MlpPolicy", env, verbose=1, tensorboard_log="./reinforcement_learning/board/", learning_rate=0.00003)
     callback = SaveOnBestTrainingRewardCallback(check_freq=2000, log_dir=log_dir)
