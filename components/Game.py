@@ -203,7 +203,7 @@ class Game:
         bidder_index = 1
         leading_bidder = self.step_bidding["leading_bidder"]
         bid_amount = self.step_bidding["bid_amount"]
-        while remaining_bidders > 0 and bidder_index < len(self.step_bidding["active_bidders"]):
+        while remaining_bidders > 0 and bidder_index < len(self.step_bidding["active_bidders"]) and bid_amount < self.max_bid:
             bidder = self.step_bidding["active_bidders"][bidder_index]
             if bidder.type == "AI":
                 if ai_bid == 1:
@@ -232,8 +232,7 @@ class Game:
             if bidder_index == len(self.step_bidding["active_bidders"]):
                 bidder_index = 1
 
-
-        if len(self.step_bidding["active_bidders"]) == 1:
+        if len(self.step_bidding["active_bidders"]) == 1 or bid_amount == self.max_bid:
             self.bid_winner = leading_bidder
             self.winning_bid = bid_amount
             print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) wins the bid at {bid_amount}")
