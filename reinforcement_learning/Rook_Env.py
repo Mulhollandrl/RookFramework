@@ -62,7 +62,8 @@ class RookEnv(gym.Env):
 
     def step(self, action):
         if self.bidding_phase:
-            self.bidding_phase = not self.game.bid_english_step(ai_bid=action)
+            self.game.bid_english_step(ai_bid=action)
+            self.bidding_phase = not len(self.game.step_bidding["active_bidders"]) == 1
             if not self.bidding_phase:
                 self.action_space = spaces.Discrete(len(self.ai_player.playable_cards))
         else:
