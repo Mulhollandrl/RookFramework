@@ -24,7 +24,7 @@ def run_ai():
 
     game.deal_cards()
 
-    env = RookEnv(game, 0, verbose)
+    env = RookEnv(game, players[0], verbose)
 
     obs, _ = env.reset()
     done = False
