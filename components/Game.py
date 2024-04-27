@@ -1,235 +1,318 @@
 import random
-from algorithms.greedy_algorithm import greedy_bid, greedy_play, greedy_nest_choice, greedy_trump_color
-from algorithms.human_player import request_bid, request_move, request_nest_choice, request_trump_color
-from algorithms.random_algorithm import random_bid, random_nest_choice, random_play, random_trump_color
 from components.Card import Card
 from components.Nest import Nest
-from components.Trick_Pile import Trick_Pile
-from enums.CARD_POINTS import CARD_POINTS
-from enums.COLORS import COLORS, REVERSE_COLORS
+from components.Trick import Trick
+from enums.COLORS import REVERSE_COLORS
+from utilities.GameLoader import GameLoader
 
 
 class Game:
-    def __init__(self, trump_color, players, starting_player_id, random_player_ids, human_player_ids, greedy_player_ids, min_bid=40, max_bid=120) -> None:
-        self.trump_color = trump_color
+    def __init__(self, players, starting_player_id, min_bid=40, max_bid=120, verbose=False, reuse_deal=False, save_deal_location="") -> None:
+        self.verbose = verbose
         self.players = players
-        self.starting_player_id = starting_player_id
-        self.random_player_ids = random_player_ids
-        self.human_player_ids = human_player_ids
-        self.greedy_player_ids = greedy_player_ids
+        self.starting_player_id = int(starting_player_id)
         self.min_bid = min_bid
         self.max_bid = max_bid
+        self.hands = None
 
-        self.current_bid = min_bid
-        self.made_bid_player_ids = []
-        self.passed_player_ids = []
-        
-        self.player_ids = [player.ID for player in players]
-
-        self.trick_pile = Trick_Pile(self.trump_color)
         self.nest = Nest([])
 
-        self.game_going = True
-        self.bidding_stage = True
-        self.current_color = None
-        self.bids = []
-        
-        cards = []
-        
-        for color in range(4):
-            for number in range(1, 15):
-                cards.append(Card(number, color, False))
-                
-        cards.append(Card(20, 4, True))
-        
-        random.shuffle(cards)
-        
-        self.divide_cards(cards)
+        self.bid_winner = None
+        self.winning_bid = None
+        self.trump_color = None
 
-            
-    def divide_cards(self, cards) -> None:
-        self.nest.set_cards(cards[:6])
-        del cards[:6]
-        
-        current_player_id = 0
-        
-        while cards:
-            card = cards.pop()
+        if reuse_deal or save_deal_location != "":
+            self.deal_cards()
 
-            player = self.players[current_player_id]
-            
-            player.add_playable_cards([card])
-            current_player_id += 1
-            
-            if current_player_id >= len(self.players):
-                current_player_id = 0
+        if reuse_deal:
+            self.hands = [player.playable_cards for player in self.players]
+            self.hands.insert(0, self.nest.get_cards())
 
+        # If there's a filepath to save the dealt hands to, then save them there
+        if save_deal_location != "":
+            self.save_deal(save_deal_location)
 
-    def next_bid(self, player_id, alternate_bid=0, verbose=False) -> bool:
-        if not player_id in self.passed_player_ids:
-            if player_id in self.random_player_ids:
-                bid = random_bid()
-            elif player_id in self.human_player_ids:
-                bid = request_bid(self.current_bid)
-            elif player_id in self.greedy_player_ids:
-                bid = greedy_bid(self.players[player_id], self.current_bid)
-            else:
-                if not alternate_bid == 0:
-                    bid = alternate_bid
-                else:
-                    return False
-                
-            if verbose:
-                print(f"Player {player_id} has just bid {self.current_bid + 5 if bid else 'Pass'}")
-                
-            if bid:
-                self.current_bid += 5
-                
-                if verbose:
-                    print(f"The bid has been set to {self.current_bid}")
-            else:
-                self.passed_player_ids.append(player_id)
-                
-            if len(self.bids) == len(self.player_ids):
-                self.bids[player_id] = self.current_bid if bid else 0
-            else:
-                self.bids.append(self.current_bid if bid else 0) 
-            
-            if len(self.passed_player_ids) == len(self.player_ids) - 1:
-                self.bidding_stage = False
+        self.remaining_tricks = 52 // len(self.players)
 
-                highest_bidder_id = self.bids.index(max(self.bids))
-                self.players[highest_bidder_id].set_bid(max(self.bids))
+        self.step_bidding = {
+            "active_bidders": self.get_ordered_players(),
+            "leading_bidder": self.players[starting_player_id],
+            "bid_amount": min_bid
+        }
 
-                if highest_bidder_id in self.random_player_ids:
-                    self.trump_color = random_trump_color()
-                    random_nest_choice(self.players[highest_bidder_id], self.nest)
-                elif highest_bidder_id in self.human_player_ids:
-                    self.trump_color = request_trump_color()
-                    request_nest_choice(self.players[highest_bidder_id], self.nest)
-                elif highest_bidder_id in self.greedy_player_ids:
-                    self.trump_color = greedy_trump_color(self.players[highest_bidder_id])
-                    greedy_nest_choice(self.players[highest_bidder_id], self.nest)
+        self.active_trick = None
+        self.ai_trick_score = 0
 
-                if verbose:
-                    print(f"Player {highest_bidder_id} has bid the highest at {max(self.bids)}")
-                    print(f"The trump color has been set to {REVERSE_COLORS[self.trump_color]}")
+    def deal_cards(self) -> None:
+        if self.hands is not None and len(self.hands) > 0:
+            self.nest.set_cards(self.hands[0])
 
-            self.made_bid_player_ids.append(player_id)
-
-            if len(self.made_bid_player_ids) == len(self.player_ids):
-                self.made_bid_player_ids = [player_id for player_id in self.passed_player_ids]
-
-                if max(self.bids) == 0:
-                    self.bidding_stage = False
-                    
-                    if verbose:
-                        print(f"Nobody bid, and bidding is over")
+            current_player_id = self.starting_player_id
+            for i in range(1, len(self.hands)):
+                self.players[current_player_id].deal_hand(self.hands[i])
+                current_player_id += 1
+                if current_player_id == len(self.players):
+                    current_player_id = 0
         else:
+            cards = []
+            for color in range(4):
+                for number in range(1, 15):
+                    cards.append(Card(number, color))
+
+            cards.append(Card(20, 4))
+
+            random.shuffle(cards)
+
+            self.nest.set_cards(cards[:6])
+            del cards[:6]
+
+            current_player_id = self.starting_player_id
+
+            while cards:
+                card = cards.pop()
+
+                player = self.players[current_player_id]
+
+                player.deal_card(card)
+                current_player_id += 1
+
+                if current_player_id >= len(self.players):
+                    current_player_id = 0
+
+    def reset(self):
+        self.nest = Nest([])
+        self.bid_winner = None
+        self.winning_bid = None
+        self.trump_color = None
+
+        self.remaining_tricks = 52 // len(self.players)
+        self.active_trick = None
+
+        for player in self.players:
+            player.reset()
+
+        self.deal_cards()
+
+        self.step_bidding = {
+            "active_bidders": self.get_ordered_players(),
+            "leading_bidder": self.players[self.starting_player_id],
+            "bid_amount": self.min_bid
+        }
+
+    def play(self, bidding_style="english"):
+        self.reset()
+
+        self.bid(bidding_style)
+
+        while self.remaining_tricks > 0:
+            self.play_trick()
+            self.remaining_tricks -= 1
+
+        self.end()
+
+    def bid(self, bidding_style):
+        if bidding_style == "sealed":
+            bidder, bid = self.bid_sealed_style()
+        elif bidding_style == "dutch":
+            bidder, bid = self.bid_dutch_style()
+        else:
+            bidder, bid = self.bid_english_style()
+
+        print(f"Player {bidder.ID} ({bidder.report_type()}) wins the bid at {bid}")
+
+        self.bid_winner = bidder
+        self.winning_bid = bid
+        self.trump_color = int(bidder.get_trump_suit())
+        self.starting_player_id = bidder.ID
+
+        if self.verbose:
+            print(f"Player {bidder.ID} ({bidder.report_type()}) chose {REVERSE_COLORS[self.trump_color]} as the trump suit.")
+
+
+    def bid_sealed_style(self):
+        top_bidder = None
+        top_bid = self.min_bid - 1
+        for player in self.players:
+            bid = player.get_sealed_bid(self.min_bid, self.max_bid)
+            if bid > top_bid:
+                top_bid = bid
+                top_bidder = player
+            if self.verbose:
+                print(f"Player {player.ID} ({player.report_type()}) bids {bid}")
+
+        return top_bidder, top_bid
+
+    def bid_dutch_style(self):
+        potential_bidders = self.get_ordered_players()
+        current_bid = self.max_bid + 5
+        bidder = None
+
+        if self.verbose:
+            print(f"Starting the bidding at {current_bid}")
+
+        while current_bid >= self.min_bid and bidder is None:
+            current_bid -= 5
+            bidder_index = 0
+            while bidder is None and bidder_index < len(potential_bidders):
+                next_bidder = potential_bidders[bidder_index]
+                if next_bidder.get_dutch_bid(current_bid):
+                    if self.verbose:
+                        print(f"Player {next_bidder.ID} ({next_bidder.report_type()}) took the bid at {current_bid}")
+                    bidder = next_bidder
+                bidder_index += 1
+            if self.verbose:
+                print(f"No players took the bid at {current_bid}.")
+
+        if bidder is None:
+            bidder = potential_bidders[0]
+            current_bid = self.min_bid
+            if self.verbose:
+                print(f"No one bid. As the starting bidder, player {bidder.ID} ({bidder.report_type()}) bids at {current_bid} by default.")
+
+        return bidder, current_bid
+
+    def bid_english_style(self):
+        bidding_players = self.get_ordered_players()
+
+        current_bid = self.min_bid
+        leading_bidder = bidding_players[0]
+
+        if self.verbose:
+            print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) leads the bidding with {current_bid}")
+
+        bidder_index = 1
+        while len(bidding_players) > 1 :
+            while bidder_index < len(bidding_players) and len(bidding_players) > 1:
+                bidding_player = bidding_players[bidder_index]
+                if bidding_player.get_english_bid(current_bid + 5):
+                    current_bid += 5
+                    bidder_index += 1
+                    leading_bidder = bidding_player
+                    if self.verbose:
+                        print(f"Player {bidding_player.ID} ({bidding_player.report_type()}) bid {current_bid}")
+                else:
+                    bidding_players.pop(bidder_index)
+                    if self.verbose:
+                        print(f"Player {bidding_player.ID} ({bidding_player.report_type()}) passed on bidding {current_bid + 5}")
+            bidder_index = 0
+
+        return leading_bidder, current_bid
+
+    def bid_english_step(self, ai_bid) -> bool:
+        remaining_bidders = len(self.step_bidding["active_bidders"])
+        bidder_index = 1
+        leading_bidder = self.step_bidding["leading_bidder"]
+        bid_amount = self.step_bidding["bid_amount"]
+        while remaining_bidders > 0 and bidder_index < len(self.step_bidding["active_bidders"]) and bid_amount < self.max_bid:
+            bidder = self.step_bidding["active_bidders"][bidder_index]
+            if bidder.type == "AI":
+                if ai_bid == 1:
+                    leading_bidder = bidder
+                    bid_amount += 5
+                    bidder_index += 1
+                    if self.verbose:
+                        print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) bid {bid_amount}")
+                else:
+                    if self.verbose:
+                        print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
+                    self.step_bidding["active_bidders"].pop(bidder_index)
+            elif bidder.get_english_bid(bid_amount + 5):
+                leading_bidder = bidder
+                bid_amount += 5
+                bidder_index += 1
+                if self.verbose:
+                    print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) bid {bid_amount}")
+            else:
+                if self.verbose:
+                    print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
+                self.step_bidding["active_bidders"].pop(bidder_index)
+
+            if bidder_index == len(self.step_bidding["active_bidders"]):
+                bidder_index = 1
+
+            remaining_bidders -= 1
+            
+        if len(self.step_bidding["active_bidders"]) == 1 or bid_amount == self.max_bid:
+            self.bid_winner = leading_bidder
+            self.winning_bid = bid_amount
+            # print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) wins the bid at {bid_amount}")
             return False
-
-                
-    def next_player_move(self, player_id, alternate_move=0, verbose=False) -> bool:
-        if player_id in self.random_player_ids:
-            move = random_play(self.players[player_id], self.trump_color, self.current_color)
-        elif player_id in self.human_player_ids:
-            move = request_move(self.players[player_id], self.trump_color, self.current_color)
-        elif player_id in self.greedy_player_ids:
-            move = greedy_play(self.players[player_id], self.trump_color, self.current_color)
         else:
-            if not alternate_move == 0:
-                move = alternate_move
+            self.step_bidding["leading_bidder"] = leading_bidder
+            self.step_bidding["bid_amount"] = bid_amount
+            return True
+
+    def play_trick(self, ai_card=None) -> None:
+        trick = Trick(self.trump_color)
+        self.active_trick = trick
+        for player in self.get_ordered_players():
+            if player.type == "AI":
+                trick.play_card(player.playable_cards[ai_card], player.ID)
+                played_card = ai_card
             else:
-                return False
-            
-        if not self.trick_pile.played_cards:
-            self.current_color = move.COLOR if not move.ROOK else self.trump_color
-            
-            if verbose:
-                print(f"The Trick Color Is: {REVERSE_COLORS[self.current_color] if not move.ROOK else 'Rook'}")
-            
-        self.trick_pile.play_card(move, player_id)
-        
-        if verbose:
-            print(f"Player {player_id} has just played \
-                  {REVERSE_COLORS[move.COLOR] if not move.ROOK else 'Rook'} {move.NUMBER}")
-        
-        if self.trick_pile.check_trick_completion(self.player_ids):
-            winning_card = self.trick_pile.get_best_card(self.current_color)
-            winning_player_id = self.trick_pile.get_winning_player_id(winning_card)
-            
-            self.players[winning_player_id].add_won_cards(self.trick_pile.played_cards)
-            
-            self.trick_pile.played_cards = []
-            self.starting_player_id = winning_player_id
-            
-            all_cards = []
-            [all_cards.extend(player.playable_cards) for player in self.players]
-            
-            if len(all_cards) < len(self.player_ids):
-                self.game_going = False
-                print(f"The game has ended!")
-                
-                self.get_winner(verbose)
-            
-            if verbose:
-                print(f"Player {winning_player_id} has just won the trick with \
-                    {'Rook' if move.ROOK else REVERSE_COLORS[winning_card.get_color()]} {winning_card.NUMBER}")
+                played_card = player.play_card(trick)
+            if self.verbose:
+                print(f"Player {player.ID} ({player.report_type()}) played {played_card}")
+                if player.ID == self.starting_player_id:
+                    print(f"The trick color is {REVERSE_COLORS[trick.trick_color]}")
 
+        winner = self.players[trick.get_winner_id()]
+        winner.win_trick(trick.played_cards)
+        self.starting_player_id = winner.ID
+        self.ai_trick_score = trick.score if trick.get_best_card() is ai_card else -trick.score
 
-    def finish_bidding(self, verbose=False) -> None:
-        current_player_id = 0
-        
-        while self.bidding_stage:
-            if not current_player_id in self.passed_player_ids:
-                if verbose:
-                    print(f"Player {current_player_id} is now bidding")
-                    
-                self.next_bid(current_player_id, verbose=verbose)
+        if self.verbose:
+            print(f"Player {winner.ID} ({winner.report_type()}) wins the trick with the {trick.get_best_card()}.")
             
-            current_player_id += 1
-            
-            if current_player_id >= len(self.player_ids):
-                current_player_id = 0
+        self.remaining_tricks -= 1
 
-                
-    def play_trick(self, verbose=False) -> None:
-        current_player_id = int(self.starting_player_id)
-        
-        while len(self.trick_pile.played_player_ids) < len(self.player_ids):
-            if verbose:
-                print(f"Player {current_player_id} is now playing a card")
-                
-            self.next_player_move(current_player_id, verbose=verbose)
-            
-            current_player_id += 1
-            
-            if current_player_id >= len(self.player_ids):
-                current_player_id = 0
-                
-        self.trick_pile.played_player_ids = []
+    def end(self):
+        for player in self.players:
+            player.score_game()
 
-                
-    def get_winner(self, verbose=False):
-        if self.game_going == False:
-            current_highest_score = -120
-            current_highest_scoring_player_id = 0
-            
-            for player in self.players:
-                win_amount = 0
-                
-                for card in player.get_won_cards():
-                    win_amount += card.get_points()
-                    
-                if win_amount >= player.get_bid():
-                    win_amount += player.get_bid()
-                else:
-                    win_amount -= player.get_bid()
-                    
-                if win_amount > current_highest_score:
-                    current_highest_score = win_amount
-                    current_highest_scoring_player_id = player.ID
-                    
-            if verbose:
-                print(f"Player {current_highest_scoring_player_id} has won with {current_highest_score}!")
-                    
+        bid_unfulfilled = self.bid_winner.score < self.winning_bid
+
+        if bid_unfulfilled:
+            print(f"Player {self.bid_winner.ID} ({self.bid_winner.report_type()}) failed to fulfill their bid, earning only {self.bid_winner.score} of the expected {self.winning_bid} points, so {self.winning_bid} points were deducted from their score.")
+        else:
+            print(f"Player {self.bid_winner.ID} ({self.bid_winner.report_type()}) fulfilled their bid of {self.winning_bid} with {self.bid_winner.score}. No points were deducted from their score.")
+
+        if bid_unfulfilled:
+            self.bid_winner.score -= self.winning_bid
+
+        winner = self.get_winner()
+
+        print(f"Player {winner.ID} ({winner.report_type()}) has won with {winner.score} points!")
+
+        if self.verbose:
+            scoreboard = [player for player in self.players]
+            scoreboard.sort(key=lambda player: player.score, reverse=True)
+
+            print("Scoreboard:")
+            for scorer in scoreboard:
+                print(f"\tPlayer {scorer.ID} ({scorer.report_type()}): {scorer.score}")
+
+    def get_winner(self):
+        return max(self.players, key=lambda player: player.score)
+
+    def get_ordered_players(self):
+        ordered_players = []
+        number_of_players = len(self.players)
+        next_player_id = self.starting_player_id
+
+        while len(ordered_players) < number_of_players:
+            ordered_players.append(self.players[next_player_id])
+            next_player_id += 1
+            if next_player_id == number_of_players:
+                next_player_id = 0
+        return ordered_players
+
+    def get_bidding_report(self):
+        return self.winning_bid, self.bid_winner.earned_points >= self.winning_bid, self.bid_winner is self.get_winner()
+
+    # Saves a json representation of the dealt cards to be loaded in later
+    def save_deal(self, save_deal_location):
+        self.hands = [player.playable_cards for player in self.players]
+        self.hands.insert(0, self.nest.get_cards())
+        with open(save_deal_location, 'w') as fout:
+            GameLoader.save_hands(self.players, self.nest, fout)
