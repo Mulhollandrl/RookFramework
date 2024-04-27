@@ -93,6 +93,12 @@ class Game:
 
         self.deal_cards()
 
+        self.step_bidding = {
+            "active_bidders": self.get_ordered_players(),
+            "leading_bidder": self.players[self.starting_player_id],
+            "bid_amount": self.min_bid
+        }
+
     def play(self, bidding_style="english"):
         self.reset()
 
