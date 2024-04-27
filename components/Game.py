@@ -210,6 +210,7 @@ class Game:
                     if self.verbose:
                         print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
                     self.step_bidding["active_bidders"].pop(bidder_index)
+                    remaining_bidders -= 1
             elif bidder.get_english_bid(bid_amount + 5):
                 leading_bidder = bidder
                 bid_amount += 5
@@ -220,11 +221,11 @@ class Game:
                 if self.verbose:
                     print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
                 self.step_bidding["active_bidders"].pop(bidder_index)
+                remaining_bidders -= 1
 
             if bidder_index == len(self.step_bidding["active_bidders"]):
-                bidder_index = 0
+                bidder_index = 1
 
-            remaining_bidders -= 1
 
         if len(self.step_bidding["active_bidders"]) == 1:
             self.bid_winner = leading_bidder
