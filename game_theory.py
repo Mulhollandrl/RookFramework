@@ -2,13 +2,35 @@ from old_components.Player import Player
 from old_components.Game import Game
 
 def game_theory():
-    print("starting game theory simulation")
+    print(f"starting game theory simulation\n"+
+          "player will stick to one strategy for an entire game and then get the chance to update their reward and switch strategies after each game.")
 
     game_count = int(input('enter how many games to simulate: '))
 
-    player1 = Player("random", True)
-    player2 = Player("random", True)
-    player3 = Player("random", True)
+    strategies = {
+        0: 'flush_trump',
+        1: 'highest_point_card',
+        2: 'strongest_card',
+        3: 'weakest_card',
+        4: 'random'
+    }
+
+    print(f"strategies:\n0 - flush_trump,\n1 - highest_point_card,\n2 - strongest_card,\n3 - weakest_card,\n4 - random")
+    strat_0 = strategies[int(input("enter starting strategy for player 0: "))]
+    strat_1 = strategies[int(input("enter starting strategy for player 1: "))]
+    strat_2 = strategies[int(input("enter starting strategy for player 2: "))]
+
+    one_move = int(input("enter which game you want player 0 to be able to start switching strategies: "))
+    two_move = int(input("enter which game you want player 1 to be able to start switching strategies: "))
+    three_move = int(input("enter which game you want player 2 to be able to start switching strategies: "))
+
+    player1 = Player(strat_0, one_move, False)
+    player2 = Player(strat_1, two_move, False)
+    player3 = Player(strat_2, three_move, False)
+
+    # player1 = Player("random", True)
+    # player2 = Player("random", False)
+    # player3 = Player("random", False)
 
     game = Game(
                 0,

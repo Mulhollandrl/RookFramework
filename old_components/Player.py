@@ -13,7 +13,7 @@ import random
 class Player:
     ID = 0 #static 
 
-    def __init__(self, strategy_name, can_change=False, bid=40) -> None:
+    def __init__(self, strategy_name, move_step, can_change=False, bid=40) -> None:
    
         self.ID = Player.ID
         Player.ID += 1
@@ -21,6 +21,7 @@ class Player:
         self.playable_cards = []
         self.won_cards = []
         self.bid = bid
+        self.move_step = move_step
 
         self.can_change_strategy = can_change
 
@@ -82,16 +83,20 @@ class Player:
     def play_card(self, trump_color, current_color) -> Card:
         self.times_strategy_used[self.strategy_name] += 1
 
-        print("used strategy " + self.strategy_name)
+        # print("used strategy " + self.strategy_name)
 
         card = self.strategy(trump_color, current_color)
+
+        if card == None:
+            pass
+
         return card 
     
     def update_reward_and_strategy(self, epsilon):
 
         if self.can_change_strategy:
             old_strategy = self.strategy_name
-            self.strategy_rewards[self.strategy_name] += 1
+            # self.strategy_rewards[self.strategy_name] += 1
 
             #find strategy with best reward
             best_strat = max(self.strategy_rewards, key=self.strategy_rewards.get)
@@ -114,23 +119,43 @@ class Player:
     def flush_trump(self, trump_color, current_color) -> Card:
    
         cards = self.get_playable_cards()
-
+        trump_cards = [card for card in cards if card.get_color() == trump_color or card.ROOK]
+        suit_cards = [card for card in cards if card.get_color() == current_color]
+        non_suit_cards = [card for card in cards if card.get_color() != current_color]
+       
         if current_color == None:
-            trump_cards = [card for card in cards if card.get_color() == trump_color or card.ROOK]
-
             if trump_cards:
                 card_to_play = min(trump_cards, key=lambda card: card.get_number())
                 self.set_playable_cards([card for card in cards if not card == card_to_play])
+                if card_to_play == None:
+                    pass
+                return card_to_play
+            
+            else:
+                card_to_play = max(non_suit_cards, key=lambda card: card.get_number())
+                self.set_playable_cards([card for card in cards if not card == card_to_play])
+                if card_to_play == None:
+                    pass
                 return card_to_play
             
         #play strongest suit card 
-        else:
-            suit_cards = [card for card in cards if card.get_color() == current_color]
-
+        if cards:
+        
             if suit_cards:
                 card_to_play = max(suit_cards, key=lambda card: card.get_number())
                 self.set_playable_cards([card for card in cards if not card == card_to_play])
+                if card_to_play == None:
+                    pass
                 return card_to_play
+            #if no suit play strongest of any color 
+            else:
+                card_to_play = max(cards, key=lambda card: card.get_number())
+                self.set_playable_cards([card for card in cards if not card == card_to_play])
+                if card_to_play == None:
+                    pass
+                return card_to_play
+        else:
+            pass
 
 
     def highest_point_card(self, trump_color, current_color):
@@ -138,10 +163,13 @@ class Player:
         suit_cards = [card for card in cards if card.get_color() == current_color]
         highest_points = [card for card in cards if card.get_points() > 0]
         rook_cards = [card for card in cards if card.ROOK]
+        trump_cards = [card for card in cards if card.get_color() == trump_color or card.ROOK]
 
         if rook_cards:
             card_to_play = rook_cards[0]
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
       
         if suit_cards:
@@ -149,15 +177,34 @@ class Player:
             if highest_points:
                 card_to_play = max(highest_points, key=lambda card: card.get_points())
                 self.set_playable_cards([card for card in cards if not card == card_to_play])
+                if card_to_play == None:
+                    pass
                 return card_to_play
-            else:
-                self.random(trump_color, current_color)
 
         if highest_points:
             card_to_play = max(highest_points, key=lambda card: card.get_points())
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
         
+        #play lowest trump card 
+        if trump_cards:
+            card_to_play = min(trump_cards, key=lambda card: card.get_number())
+            self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
+            return card_to_play
+        
+        #if no points or suits or trumps, play random
+        else:
+            card_to_play = random.choice(cards)
+            self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
+            return card_to_play
+        
+       
 
     def strongest_card(self, trump_color, current_color):
         cards = self.get_playable_cards()
@@ -166,6 +213,8 @@ class Player:
         if rook:
             card_to_play = rook[0]
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
         
         suit_cards = [card for card in cards if card.get_color() == current_color]
@@ -174,14 +223,20 @@ class Player:
         if suit_cards:
             card_to_play = max(suit_cards, key=lambda card: card.get_number())
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
-        elif trump_cards:
+        if trump_cards:
             card_to_play = max(trump_cards, key=lambda card: card.get_number())
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
         else:
             card_to_play = max(cards, key=lambda card: card.get_number())
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
 
 
@@ -194,14 +249,21 @@ class Player:
         if suit_cards:
             card_to_play = min(suit_cards, key=lambda card: card.get_number())
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
-        elif non_trump_cards:
+        
+        if non_trump_cards:
             card_to_play = min(non_trump_cards, key=lambda card: card.get_number())
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
         else:
             card_to_play = min(cards, key=lambda card: card.get_number())
             self.set_playable_cards([card for card in cards if not card == card_to_play])
+            if card_to_play == None:
+                pass
             return card_to_play
 
 
@@ -218,7 +280,11 @@ class Player:
 
             self.set_playable_cards([card for card in cards if not card == card_to_play])
 
+            if card_to_play == None:
+                pass
             return card_to_play
+        else:
+            pass
 
 
     def get_key_by_value(self, dictionary, value):

@@ -166,17 +166,20 @@ class Game:
         #     move = request_move(self.Ai_players[player_id], self.trump_color, self.current_color)
         # elif player_id in self.greedy_player_ids:
         #     move = greedy_play(self.Ai_players[player_id], self.trump_color, self.current_color)
-        trump_color = self.trick_pile.trump_color
-        if not self.trick_pile.played_cards:
-            self.current_color = None
+
+        # trump_color = self.trick_pile.trump_color
+
+        # if not self.trick_pile.played_cards:
+        #     self.current_color = None
+        round_over = False
 
         trump_color = self.trick_pile.trump_color
         move = self.players[player_id].play_card(trump_color, self.current_color)
             
         if move == None:
-            print("there was an error, exiting...")
-            return
-
+            round_over = True
+        
+        # if not round_over:
         if not self.trick_pile.played_cards:##########################################################
             self.current_color = move.COLOR if not move.ROOK else self.trump_color
             
@@ -187,16 +190,17 @@ class Game:
         
         if verbose:
             print(f"Player {player_id} has just played \
-                  {REVERSE_COLORS[move.COLOR] if not move.ROOK else 'Rook'} {move.NUMBER}")
-        
+                {REVERSE_COLORS[move.COLOR] if not move.ROOK else 'Rook'} {move.NUMBER}")
+            
         #if trick is done 
-        if self.trick_pile.check_trick_completion(self.player_ids):
+        if self.trick_pile.check_trick_completion(self.player_ids) or round_over:
             winning_card = self.trick_pile.get_best_card(self.current_color)
             winning_player_id = self.trick_pile.get_winning_player_id(winning_card)
             
             self.players[winning_player_id].add_won_cards(self.trick_pile.played_cards)
 
-            self.players[winning_player_id].update_reward_and_strategy(0.2)
+            # update per trick
+            # self.players[winning_player_id].update_reward_and_strategy(0.3)
             
             self.trick_pile.played_cards = []
 
@@ -211,6 +215,11 @@ class Game:
                     {'Rook' if move.ROOK else REVERSE_COLORS[winning_card.get_color()]} {winning_card.NUMBER}\n")
             
             if len(all_cards) < len(self.player_ids):
+
+                for player in self.players:
+                    if player.move_step == self.game_count:
+                        player.can_change_strategy = True
+
                 self.game_going = False
                 print(f"\n---------------------GAME {self.game_count} HAS ENDED!---------------------\n")
                 self.game_count += 1
@@ -271,6 +280,13 @@ class Game:
                 if win_amount > current_highest_score:
                     current_highest_score = win_amount
                     current_highest_scoring_player_id = player.ID
+            
+            #update reward for winning the game 
+            winner = self.players[current_highest_scoring_player_id]
+            winner.strategy_rewards[winner.strategy_name] += 1
+
+            for player in self.players:
+                player.update_reward_and_strategy(0.2)
                     
             if verbose:
                 print(f"Player {current_highest_scoring_player_id} has won game {self.game_count - 1} with {current_highest_score}!")
@@ -289,6 +305,7 @@ class Game:
         self.current_color = None
         self.bids = []
         self.passed_player_ids = []
+        self.nest = Nest([])
         
         self.cards = []
 
@@ -311,9 +328,12 @@ class Game:
         print("\n-------------------------------FINAL RESULTS OF ALL GAMES RAN-------------------------------")
         print("--------------------------------------------------------------------------------------------")
         for player in self.players:
+            won = 0
             print(f"\nplayer {player.ID} won\n")
             for key in player.strategy_rewards:
-                print(f"{player.strategy_rewards[key]} times with {key} strategy")
+                won += player.strategy_rewards[key]
+                print(f"{player.strategy_rewards[key]} games with {key} strategy")
+            print(f"total: {won}")
             print()
         
         for player in self.players:
