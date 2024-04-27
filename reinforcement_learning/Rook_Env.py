@@ -30,7 +30,7 @@ class RookEnv(gym.Env):
                 reward += self.ai_player.score
             else:
                 reward -= 60
-
+                
         return reward
     
     def get_observation(self):
@@ -62,20 +62,20 @@ class RookEnv(gym.Env):
 
     def step(self, action):
         if self.bidding_phase:
-            self.game.bid_english_step(ai_bid=action)
-            self.bidding_phase = not len(self.game.step_bidding["active_bidders"]) == 1
-            if not self.bidding_phase:
+            self.bidding_phase = self.game.bid_english_step(ai_bid=action)
+            if self.bidding_phase == False:
                 self.action_space = spaces.Discrete(len(self.ai_player.playable_cards))
         else:
             move_success = self.game.play_trick(ai_card=action)
         
-        done = not self.game.remaining_tricks == 0
+        done = self.game.remaining_tricks == 0
         reward = self.calculate_reward()
         obs = self.get_observation()
         return obs, reward, done, False, {}
 
     def reset(self, **kwargs):
         self.bidding_phase = True
+        self.action_space = spaces.Discrete(self.N_BIDS)
         
         self.game.reset()
         initial_observation = self.get_observation()

@@ -216,7 +216,6 @@ class Game:
                     if self.verbose:
                         print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
                     self.step_bidding["active_bidders"].pop(bidder_index)
-                    remaining_bidders -= 1
             elif bidder.get_english_bid(bid_amount + 5):
                 leading_bidder = bidder
                 bid_amount += 5
@@ -227,27 +226,28 @@ class Game:
                 if self.verbose:
                     print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) passed on the bid at {bid_amount}")
                 self.step_bidding["active_bidders"].pop(bidder_index)
-                remaining_bidders -= 1
 
             if bidder_index == len(self.step_bidding["active_bidders"]):
                 bidder_index = 1
 
+            remaining_bidders -= 1
+            
         if len(self.step_bidding["active_bidders"]) == 1 or bid_amount == self.max_bid:
             self.bid_winner = leading_bidder
             self.winning_bid = bid_amount
-            print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) wins the bid at {bid_amount}")
-            return True
+            # print(f"Player {leading_bidder.ID} ({leading_bidder.report_type()}) wins the bid at {bid_amount}")
+            return False
         else:
             self.step_bidding["leading_bidder"] = leading_bidder
             self.step_bidding["bid_amount"] = bid_amount
-            return False
+            return True
 
     def play_trick(self, ai_card=None) -> None:
         trick = Trick(self.trump_color)
         self.active_trick = trick
         for player in self.get_ordered_players():
             if player.type == "AI":
-                trick.play_card(ai_card, player.ID)
+                trick.play_card(player.playable_cards[ai_card], player.ID)
                 played_card = ai_card
             else:
                 played_card = player.play_card(trick)
@@ -263,6 +263,8 @@ class Game:
 
         if self.verbose:
             print(f"Player {winner.ID} ({winner.report_type()}) wins the trick with the {trick.get_best_card()}.")
+            
+        self.remaining_tricks -= 1
 
     def end(self):
         for player in self.players:
