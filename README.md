@@ -5,6 +5,12 @@
 
 Turn based has not been fully implemented. You can still use it by using Game.next_player_move() or Game.next_bid(), but you would need to pass in parameters.
 
+### Game Theory
+
+Game Theory will be menu option 2. It prompts to enter number of games to simulate. Eeach game has about 15 tricks per game. Then you can enter what you want the starting strategy for each player to be. After that you can say which game you want the players to be able to switch strategies. Players will be locked into their starting before this game and be able to switch after. If you set the game number they can move at higher than the total games you're simulating, the player will be locked into their start strategy for the whole simulation. Players will use one strategy for the duration of one game and get a reward for that strategy if they win the game. Each player will then use epsilon greedy to choose the best strategy so far or pick random. There are 5 strategies, play highest point, play strongest card, play weakest card, flush trump, and random. 
+
+In my tests, when a player can move and is against two agents locked into random mode, the player will converge to the flush-trump strategy. If you then lock in one player to flush trump and the other to random but let the third one converge, it converged to either the highest point strategy or flush trump. If you locked two players into flush trump and let the third one converge, it also converged to flush trump. This is the nash equilibrium. 
+
 ### Rules:
 
 The following rules are derived from the official rules of Rook (Roberts; “Rook”).
